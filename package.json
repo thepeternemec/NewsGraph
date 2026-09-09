@@ -1,0 +1,26 @@
+{
+  "name": "pleiades",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Pleiades — the real-time news terminal. Agentic news discovery, curation, and delivery infrastructure.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @pleiades/contracts && npm run build -w @pleiades/sdk && npm run build -w pleiades-api && npm run build -w pleiades-worker && npm run build -w pleiades-bots && npm run build -w pleiades-web",
+    "build:packages": "npm run build -w @pleiades/contracts && npm run build -w @pleiades/sdk",
+    "test": "npm run build -w @pleiades/contracts && node --test packages/contracts/dist/*.test.js",
+    "dev": "npm run dev -w pleiades-api",
+    "dev:web": "npm run dev -w pleiades-web",
+    "dev:worker": "npm run dev -w pleiades-worker",
+    "dev:bots": "npm run dev -w pleiades-bots"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}

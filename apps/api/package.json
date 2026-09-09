@@ -1,0 +1,22 @@
+{
+  "name": "pleiades-api",
+  "version": "0.2.0",
+  "description": "Pleiades REST API (Hono). Catalog, tools, pricing; metered routes until ingestion lands.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "@pleiades/contracts": "0.2.0",
+    "hono": "^4.6.14",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

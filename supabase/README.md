@@ -4,6 +4,8 @@ Supabase is the single platform: Postgres (ledger, packs, receipts), Edge
 Functions (API + ingestion worker), Realtime (push), Auth, and Storage.
 Vercel hosts only the `apps/web` site/docs.
 
+> **Going live?** Follow the copy-paste runbook: [GO-LIVE.md](GO-LIVE.md).
+
 ## One-time setup
 
 ```bash

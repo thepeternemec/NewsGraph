@@ -18,6 +18,8 @@ supabase link --project-ref <your-project-ref>
 supabase db push
 
 # 4. Set secrets
+# SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are auto-injected into Edge
+# Functions by the platform — only the provider key needs setting:
 supabase secrets set NEWSAPI_API_KEY=<your-key>
 
 # 5. Serve everything locally

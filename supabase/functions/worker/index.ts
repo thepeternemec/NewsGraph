@@ -1,17 +1,21 @@
 import { SEED_BEATS } from "../_shared/contracts/index.ts";
 import { NewsApiClient, toProviderDate } from "../_shared/worker/newsapi.ts";
 import { buildPack } from "../_shared/worker/pack.ts";
+import { persistCycle, canPersist } from "../_shared/worker/persist.ts";
 
 /**
  * Ingestion cycle — Supabase Edge Function (Phase 1).
  *
  * Triggered by the schedule in supabase/config.toml ([functions.worker] schedule)
- * or manually via HTTP GET. One invocation = one pass over the beats.
- * Persistence (Supabase Postgres), event linkage, and Realtime emission are
- * the next Phase 1 steps — see docs/ARCHITECTURE.md §4.
+ * or manually via HTTP GET. One invocation = one pass over the beats:
+ *
+ *   fetch (newsapi.ai) → event linkage → dedupe → pack → persist (Supabase)
+ *
+ * Persistence is skipped in dry-run when Supabase is not configured
+ * (local dev), matching the Node dev mirror in apps/worker.
  */
 
-async function runCycle(beats: readonly { beat_id: string; label: string; concept_uris: string[]; languages: string[] }[]) {
+async function runCycle(beats: typeof SEED_BEATS) {
   const apiKey = Deno.env.get("NEWSAPI_API_KEY");
   if (!apiKey) {
     throw new Error("NEWSAPI_API_KEY not set. Run: supabase secrets set NEWSAPI_API_KEY");
@@ -20,25 +24,47 @@ async function runCycle(beats: readonly { beat_id: string; label: string; concep
   const client = new NewsApiClient(apiKey);
   const now = new Date();
   const windowStart = new Date(now.getTime() - 6 * 60 * 60 * 1000);
-  const summaries: Array<{ beat_id: string; label: string; items: number; tokens: number }> = [];
+  const persist = canPersist();
+  const summaries: Array<Record<string, unknown>> = [];
 
   for (const beat of beats) {
     try {
-      const articles = await client.getArticles({
-        apiKey,
-        conceptUri: beat.concept_uris,
-        lang: beat.languages,
-        dateStart: toProviderDate(windowStart),
-        dateEnd: toProviderDate(now),
-      });
-      const { pack } = buildPack(
-        { ...beat, topic_filters: [], excludes: "", state: "warm", refresh_interval_minutes: 60, freshness_slo_minutes: 90 },
-        articles,
-        now,
-      );
-      summaries.push({ beat_id: beat.beat_id, label: beat.label, items: pack.item_count, tokens: pack.token_estimate });
+      const [articles, events] = await Promise.all([
+        client.getArticles({
+          apiKey,
+          conceptUri: beat.concept_uris,
+          lang: beat.languages,
+          dateStart: toProviderDate(windowStart),
+          dateEnd: toProviderDate(now),
+        }),
+        client.getEvents({
+          conceptUri: beat.concept_uris,
+          lang: beat.languages,
+          dateStart: toProviderDate(windowStart),
+          dateEnd: toProviderDate(now),
+        }),
+      ]);
+
+      const { pack } = buildPack(beat, articles, now, events);
+      const summary: Record<string, unknown> = {
+        beat_id: beat.beat_id,
+        label: beat.label,
+        items: pack.item_count,
+        tokens: pack.token_estimate,
+        events: events.length,
+        persisted: false,
+      };
+
+      if (persist) {
+        const result = await persistCycle(beat, articles, events, pack, pack.items);
+        summary.persisted = true;
+        summary.pack_id = result.pack_id;
+      }
+
+      summaries.push(summary);
+      console.log(`[worker] ${beat.label}: ${pack.item_count} items, ${events.length} events, persisted=${persist}`);
     } catch (error) {
-      console.error(`cycle failed for ${beat.beat_id}:`, error);
+      console.error(`[worker] cycle failed for ${beat.beat_id}:`, error);
     }
   }
 

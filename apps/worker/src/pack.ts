@@ -7,6 +7,7 @@ import {
   type Pack,
 } from "@pleiades/contracts";
 import type { ProviderArticle } from "./newsapi.js";
+import { linkArticlesToEvents } from "./events.js";
 
 /**
  * Build a bounded pack from provider articles.
@@ -14,7 +15,7 @@ import type { ProviderArticle } from "./newsapi.js";
  * Phase 1 invariants (docs/ARCHITECTURE.md §2):
  *  - ≤8 items, ≤800 token estimate, lede ≤320 chars, never full bodies
  *  - sorted newest-first
- *  - event clustering (event_id/corroboration) is a TODO until event linkage lands
+ *  - event_id/corroboration from provider event clusters when available
  */
 
 /** Rough token estimate: ~4 chars/token, rounded up. */
@@ -30,7 +31,12 @@ export function toBase64Url(input: string): string {
   return btoa(input).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-export function providerArticleToItem(article: ProviderArticle, now: Date): Item {
+export function providerArticleToItem(
+  article: ProviderArticle,
+  now: Date,
+  eventId: string | null = null,
+  corroboration = 0,
+): Item {
   const publishedAt = article.dateTime ?? article.date ?? new Date(0).toISOString();
   const bodyLede = article.body ? article.body.slice(0, PACK_LIMITS.max_lede_chars) : "";
   const lede = (article.title ? `${article.title}. ` : "") + bodyLede;
@@ -41,8 +47,8 @@ export function providerArticleToItem(article: ProviderArticle, now: Date): Item
     source: article.source?.title ?? article.source?.uri ?? "unknown source",
     published_at: publishedAt,
     first_indexed_at: now.toISOString(),
-    event_id: null, // Phase 1: event linkage
-    corroboration: 0, // Phase 1: distinct sources in cluster
+    event_id: eventId,
+    corroboration,
     concepts: (article.concepts ?? []).map((c) => c.uri),
     sentiment:
       typeof article.sentiment === "number"
@@ -57,20 +63,36 @@ export interface BuildPackResult {
   includedUris: string[];
 }
 
-export function buildPack(beat: Beat, articles: ProviderArticle[], now: Date): BuildPackResult {
+/**
+ * @param events provider event clusters for the same window; optional for
+ *               backward compatibility (clustering is skipped when omitted)
+ */
+export function buildPack(
+  beat: Beat,
+  articles: ProviderArticle[],
+  now: Date,
+  events: Parameters<typeof linkArticlesToEvents>[1] = [],
+): BuildPackResult {
+  const { eventUriByArticle, corroborationByEvent } = linkArticlesToEvents(articles, events);
+
   const items = articles
     .slice()
     .sort((a, b) => (b.dateTime ?? b.date ?? "").localeCompare(a.dateTime ?? a.date ?? ""))
     .slice(0, PACK_LIMITS.max_items)
-    .map((a) => providerArticleToItem(a, now));
+    .map((a) => {
+      const eventUri = eventUriByArticle.get(a.uri) ?? null;
+      const corroboration = eventUri ? (corroborationByEvent.get(eventUri) ?? 0) : 0;
+      return providerArticleToItem(a, now, eventUri, corroboration);
+    });
 
   const tokenEstimate = items.reduce(
     (sum, item) => sum + estimateTokens(item.lede) + estimateTokens(item.source) + 8,
     0,
   );
 
-  // Dry-run cursor: high-water mark = max published time. Real signed cursors
-  // and receipt ids arrive with the ledger wiring (Phase 1).
+  // Cursor: high-water mark = max published time. Receipts are placeholder
+  // until the ledger billing loop lands (Phase 0/4); persisted packs carry
+  // receipt_id 'pending' so the contract shape stays stable.
   const highWater =
     items.length > 0
       ? items.reduce((max, i) => (i.published_at > max ? i.published_at : max), "")
@@ -86,7 +108,7 @@ export function buildPack(beat: Beat, articles: ProviderArticle[], now: Date): B
     item_count: items.length,
     items,
     token_estimate: Math.min(tokenEstimate, PACK_LIMITS.max_token_estimate),
-    receipt_id: "dry_run", // ledger lands in Phase 1
+    receipt_id: "dry_run",
   });
 
   return { pack, includedUris: items.map((i) => i.url) };

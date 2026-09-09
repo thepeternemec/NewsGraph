@@ -11,6 +11,7 @@
   "dependencies": {
     "@hono/node-server": "^1.13.7",
     "@pleiades/contracts": "0.2.0",
+    "@pleiades/db": "0.2.0",
     "hono": "^4.6.14",
     "zod": "^3.24.1"
   },

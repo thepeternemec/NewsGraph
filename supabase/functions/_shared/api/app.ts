@@ -12,6 +12,7 @@ import {
 } from "../contracts/index.ts";
 import { errorByCode } from "./errors.ts";
 import { openapi } from "./openapi.ts";
+import { getPollSnapshot } from "./store.ts";
 
 export const SERVICE = {
   name: "pleiades",
@@ -93,7 +94,9 @@ app.post("/v1/resolve", (c) =>
   }),
 );
 
-// ── Metered routes: honest contract until ingestion lands ───────────
+// ── Metered routes: served from persisted packs once ingestion lands ─
+// When Supabase is not configured (local dev without a stack), the routes
+// return `pack_not_ready` — the correct contract state for no packs.
 app.post("/v1/poll", async (c) => {
   const body = await c.req.json().catch(() => null);
   const parsed = PollRequestSchema.safeParse(body);
@@ -104,9 +107,15 @@ app.post("/v1/poll", async (c) => {
   if (!known) {
     return errorByCode(c, "beat_unavailable");
   }
-  // No packs exist until Phase 1 ingestion: 503 is the correct contract state.
+  try {
+    const snapshot = await getPollSnapshot(parsed.data.beat_id, parsed.data.cursor);
+    if (snapshot) return c.json(snapshot);
+  } catch (error) {
+    console.error("poll snapshot failed:", error);
+    return errorByCode(c, "internal_error");
+  }
   return errorByCode(c, "pack_not_ready", {
-    message: "Live ingestion is not yet enabled. See /v1/pricing and docs/ROADMAP.md.",
+    message: "No packs yet for this beat. Ingestion produces them on its schedule.",
   });
 });
 
@@ -120,8 +129,17 @@ app.post("/v1/delta", async (c) => {
   if (!known) {
     return errorByCode(c, "beat_unavailable");
   }
+  try {
+    // Phase 1 delta: single-pack snapshot (multi-page delta lands with
+    // per-pack pagination in a later iteration).
+    const snapshot = await getPollSnapshot(parsed.data.beat_id, parsed.data.cursor);
+    if (snapshot) return c.json(snapshot);
+  } catch (error) {
+    console.error("delta snapshot failed:", error);
+    return errorByCode(c, "internal_error");
+  }
   return errorByCode(c, "pack_not_ready", {
-    message: "Live ingestion is not yet enabled. See /v1/pricing and docs/ROADMAP.md.",
+    message: "No packs yet for this beat. Ingestion produces them on its schedule.",
   });
 });
 

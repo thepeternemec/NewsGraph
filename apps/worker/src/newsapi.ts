@@ -35,6 +35,45 @@ const ProviderArticlesResponseSchema = z.object({
 
 export type ProviderArticle = z.infer<typeof ProviderArticleSchema>;
 
+/**
+ * Event cluster. Field names follow the provider's documented shape; the
+ * article membership list is parsed defensively because its exact name has
+ * varied across provider versions — verify against the live sandbox with
+ * the production key before relying on cluster membership.
+ */
+const ProviderEventSchema = z
+  .object({
+    uri: z.string(),
+    title: z.string().optional(),
+    eventDate: z.string().optional(),
+    totalArticleCount: z.number().int().optional(),
+    /** Distinct source count in the cluster (may be nested or absent). */
+    sourceCount: z.number().int().optional(),
+    articles: z
+      .array(z.object({ uri: z.string() }).passthrough())
+      .optional(),
+    articleUris: z.array(z.string()).optional(),
+  })
+  .passthrough();
+
+const ProviderEventsResponseSchema = z.object({
+  events: z
+    .object({
+      results: z.array(ProviderEventSchema),
+      pages: z.number().int().optional(),
+      totalResults: z.number().int().optional(),
+    })
+    .passthrough(),
+});
+
+export type ProviderEvent = z.infer<typeof ProviderEventSchema>;
+
+/** Article URIs belonging to an event, whichever provider field carries them. */
+export function eventArticleUris(event: ProviderEvent): string[] {
+  if (event.articles && event.articles.length > 0) return event.articles.map((a) => a.uri);
+  return event.articleUris ?? [];
+}
+
 export interface GetArticlesParams {
   apiKey: string;
   /** Wikipedia concept URIs, e.g. http://en.wikipedia.org/wiki/Nvidia */
@@ -95,8 +134,37 @@ export class NewsApiClient {
   }
 
   /** Placeholder — event clustering lands with the Phase 1 event linkage. */
-  async getEvents(_params: unknown): Promise<never> {
-    throw new Error("getEvents not implemented yet (Phase 1 event linkage)");
+  async getEvents(params: {
+    conceptUri?: string[];
+    lang?: string[];
+    dateStart: string;
+    dateEnd: string;
+    articlesCount?: number;
+  }): Promise<ProviderEvent[]> {
+    const body = {
+      apiKey: this.apiKey,
+      conceptUri: params.conceptUri,
+      lang: params.lang,
+      dateStart: params.dateStart,
+      dateEnd: params.dateEnd,
+      articlesCount: params.articlesCount ?? 100,
+      includeArticleUris: true,
+    };
+
+    const response = await this.fetchImpl(`${this.baseUrl}/event/getEvents`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `newsapi.ai getEvents failed: HTTP ${response.status} ${await response.text()}`,
+      );
+    }
+
+    const parsed = ProviderEventsResponseSchema.parse(await response.json());
+    return parsed.events.results;
   }
 }
 

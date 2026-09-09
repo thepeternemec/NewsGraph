@@ -1,15 +1,14 @@
 import { SEED_BEATS } from "@pleiades/contracts";
 import { NewsApiClient, toProviderDate } from "./newsapi.js";
 import { buildPack } from "./pack.js";
+import { persistCycle, canPersist } from "./persist.js";
 
 /**
- * Ingestion cycle — Phase 1 skeleton.
+ * Ingestion cycle — Node dev mirror of the Supabase Edge Function.
  *
- * Currently: fetch → dedupe → build pack → print (dry-run).
- * Next (Phase 1): persist to Supabase, event linkage, advance high-water,
- * emit for push (Phase 2), LLM enrichment (Phase 5).
+ * fetch (newsapi.ai) → event linkage → dedupe → pack → persist (Supabase).
+ * When Supabase is not configured, the cycle runs dry (prints packs).
  */
-
 async function runCycle(beats = SEED_BEATS): Promise<void> {
   const apiKey = process.env.NEWSAPI_API_KEY;
   if (!apiKey) {
@@ -21,22 +20,35 @@ async function runCycle(beats = SEED_BEATS): Promise<void> {
   const client = new NewsApiClient(apiKey);
   const now = new Date();
   const windowStart = new Date(now.getTime() - 6 * 60 * 60 * 1000); // last 6h (pilot)
+  const persist = canPersist();
 
   for (const beat of beats) {
     try {
-      const articles = await client.getArticles({
-        apiKey,
-        conceptUri: beat.concept_uris,
-        lang: beat.languages,
-        dateStart: toProviderDate(windowStart),
-        dateEnd: toProviderDate(now),
-      });
-      const { pack } = buildPack(beat, articles, now);
-      console.log(`[pleiades-worker] ${beat.label}: ${pack.item_count} items, ${pack.token_estimate} tokens`);
-      if (process.env.PLEIADES_DRY_RUN !== "false") {
+      const [articles, events] = await Promise.all([
+        client.getArticles({
+          apiKey,
+          conceptUri: beat.concept_uris,
+          lang: beat.languages,
+          dateStart: toProviderDate(windowStart),
+          dateEnd: toProviderDate(now),
+        }),
+        client.getEvents({
+          conceptUri: beat.concept_uris,
+          lang: beat.languages,
+          dateStart: toProviderDate(windowStart),
+          dateEnd: toProviderDate(now),
+        }),
+      ]);
+
+      const { pack } = buildPack(beat, articles, now, events);
+      const line = `[pleiades-worker] ${beat.label}: ${pack.item_count} items, ${events.length} events, persisted=${persist}`;
+      console.log(line);
+
+      if (persist) {
+        await persistCycle(beat, articles, events, pack, pack.items);
+      } else {
         console.log(JSON.stringify(pack, null, 2));
       }
-      // TODO(Phase 1): persist pack, advance high-water mark, emit event.
     } catch (error) {
       console.error(`[pleiades-worker] cycle failed for ${beat.beat_id}:`, error);
     }
@@ -52,14 +64,14 @@ const beats = pilot.length > 0 ? SEED_BEATS.filter((b) => pilot.includes(b.beat_
 
 console.log(
   `[pleiades-worker] starting cycle: ${beats.length} beat(s)${
-    process.env.PLEIADES_DRY_RUN === "false" ? "" : " (dry-run)"
+    canPersist() ? "" : " (dry-run — Supabase not configured)"
   }`,
 );
 
 await runCycle(beats);
 
-// Keep polling on an interval when requested. Production scheduling (Phase 1)
-// should use a dedicated host — Vercel Cron is not suitable for beat fan-out.
+// Keep polling on an interval when requested. Production scheduling runs on
+// Supabase via the Edge Function cron ([functions.worker] schedule).
 if (process.env.PLEIADES_LOOP === "true") {
   setInterval(() => void runCycle(beats), 60_000);
 }

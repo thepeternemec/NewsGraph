@@ -49,8 +49,8 @@ pleiades/
 | Layer | State |
 |---|---|
 | Contract & schemas (`@pleiades/contracts`) | ✅ canonical v0.2 schema + 20 seed beats (mirrors the live v0.1 catalog) |
-| API (`supabase/functions/api`) | ✅ serving `/health`, `/v1/catalog`, `/v1/tools`, `/v1/pricing`, `/openapi.json`; metered routes return honest `503` until ingestion lands |
-| Ingestion (`supabase/functions/worker`) | 🚧 newsapi.ai client + pack builder implemented; Supabase persistence pending (Phase 1) |
+| API (`supabase/functions/api`) | ✅ serving `/health`, `/v1/catalog`, `/v1/tools`, `/v1/pricing`, `/openapi.json`; poll/delta serve **persisted packs** when Supabase is configured, honest `503` otherwise |
+| Ingestion (`supabase/functions/worker`) | ✅ newsapi.ai fetch → event clustering → dedupe → pack → Supabase persistence; ledger billing loop pending (Phase 0/4) |
 | Bots (`apps/bots`) | 🚧 Telegram/Discord delivery adapters; loop wired in Phase 2/3 |
 | WebSocket / webhooks | 📋 Phase 2 (Supabase Realtime) |
 | x402 / ACP / MCP | 📋 Phase 4 |

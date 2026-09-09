@@ -75,6 +75,7 @@ const COPIES = [
       ['from "@pleiades/contracts"', 'from "../contracts/index.ts"'],
       ['from "./lib/errors.js"', 'from "./errors.ts"'],
       ['from "./lib/openapi.js"', 'from "./openapi.ts"'],
+      ['from "./lib/store.js"', 'from "./store.ts"'],
     ],
   },
   {
@@ -90,6 +91,39 @@ const COPIES = [
     dst: "api/openapi.ts",
     rewrite: [],
   },
+  {
+    src: "apps/api/src/lib/store.ts",
+    dst: "api/store.ts",
+    rewrite: [
+      ['from "@pleiades/db"', 'from "../db/index.ts"'],
+      ['from "@pleiades/contracts"', 'from "../contracts/index.ts"'],
+    ],
+  },
+
+  // DB access layer
+  {
+    src: "packages/db/src/client.ts",
+    dst: "db/client.ts",
+    rewrite: [
+      ['from "@supabase/supabase-js"', 'from "npm:@supabase/supabase-js@^2.45.4"'],
+    ],
+  },
+  {
+    src: "packages/db/src/queries.ts",
+    dst: "db/queries.ts",
+    rewrite: [
+      ['from "@supabase/supabase-js"', 'from "npm:@supabase/supabase-js@^2.45.4"'],
+      ['from "@pleiades/contracts"', 'from "../contracts/index.ts"'],
+    ],
+  },
+  {
+    src: "packages/db/src/index.ts",
+    dst: "db/index.ts",
+    rewrite: [
+      [/from "(\.[^"]+)\.js"/g, 'from "$1.ts"'],
+      [/export \* from "(\.[^"]+)\.js"/g, 'export * from "$1.ts"'],
+    ],
+  },
 
   // Worker: provider client + pack builder
   {
@@ -98,11 +132,27 @@ const COPIES = [
     rewrite: [['from "zod"', 'from "npm:zod@^3.24.1"']],
   },
   {
+    src: "apps/worker/src/events.ts",
+    dst: "worker/events.ts",
+    rewrite: [['from "./newsapi.js"', 'from "./newsapi.ts"']],
+  },
+  {
     src: "apps/worker/src/pack.ts",
     dst: "worker/pack.ts",
     rewrite: [
       ['from "@pleiades/contracts"', 'from "../contracts/index.ts"'],
       ['from "./newsapi.js"', 'from "./newsapi.ts"'],
+      ['from "./events.js"', 'from "./events.ts"'],
+    ],
+  },
+  {
+    src: "apps/worker/src/persist.ts",
+    dst: "worker/persist.ts",
+    rewrite: [
+      ['from "@supabase/supabase-js"', 'from "npm:@supabase/supabase-js@^2.45.4"'],
+      ['from "@pleiades/db"', 'from "../db/index.ts"'],
+      ['from "@pleiades/contracts"', 'from "../contracts/index.ts"'],
+      [/from "\.\/newsapi\.js"/g, 'from "./newsapi.ts"'],
     ],
   },
 ];

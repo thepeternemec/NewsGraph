@@ -1,0 +1,25 @@
+{
+  "name": "@pleiades/db",
+  "version": "0.2.0",
+  "description": "Supabase data access for Pleiades: client factory + pack read queries (runs on Node and Deno).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@pleiades/contracts": "0.2.0",
+    "@supabase/supabase-js": "^2.45.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

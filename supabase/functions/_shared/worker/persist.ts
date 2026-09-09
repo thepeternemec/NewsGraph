@@ -3,21 +3,22 @@
 // Regenerate with: npm run sync:supabase
 
 import type { SupabaseClient } from "npm:@supabase/supabase-js@^2.45.4";
-import { createSupabaseClient, hasSupabaseEnv } from "../db/index.ts";
+import { createSupabaseClient, hasSupabaseEnv, latestPack } from "../db/index.ts";
 import type { Beat, Item } from "../contracts/index.ts";
 import type { ProviderArticle, ProviderEvent } from "./newsapi.ts";
-import { eventArticleUris } from "./newsapi.ts";
+import { eventTitle } from "./newsapi.ts";
 
 /**
  * Phase 1 persistence: raw articles + event clusters → packs.
- * All writes are idempotent (upserts keyed by provider URI), so a scheduler
- * that runs the cycle twice cannot double-count items.
+ * All writes are idempotent: articles/events upsert by provider URI, packs
+ * dedupe on cursor, and empty cycles (no new items) do not create packs.
  */
 
 export interface PersistedCycle {
-  pack_id: string;
+  pack_id: string | null;
   item_count: number;
   event_count: number;
+  skipped: boolean;
 }
 
 export function canPersist(): boolean {
@@ -45,30 +46,44 @@ export async function persistCycle(
     source_name: a.source?.title ?? a.source?.uri ?? null,
     sentiment: typeof a.sentiment === "number" ? a.sentiment : null,
     concepts: (a.concepts ?? []).map((c) => c.uri),
-    event_uri: null as string | null,
+    event_uri: a.eventUri ?? null,
   }));
   const { error: articlesError } = await db
     .from("articles_raw")
     .upsert(articleRows, { onConflict: "provider_uri" });
   if (articlesError) throw new Error(`articles_raw upsert failed: ${articlesError.message}`);
 
-  // 2. Event clusters (upsert keyed by provider event URI).
+  // 2. Event clusters. event_id = provider event URI so pack_items.event_id
+  //    (article.eventUri) satisfies the foreign key.
   const eventRows = events.map((e) => ({
+    event_id: e.uri,
     provider_event_uri: e.uri,
     beat_id: beat.beat_id,
-    title: e.title ?? null,
+    title: eventTitle(e) ?? null,
     first_seen_at: new Date().toISOString(),
     last_seen_at: new Date().toISOString(),
-    source_count: eventArticleUris(e).length > 0 ? 0 : e.sourceCount ?? e.totalArticleCount ?? 0,
+    source_count: e.sourceCount ?? e.totalArticleCount ?? 0,
   }));
   if (eventRows.length > 0) {
+    // ignoreDuplicates → ON CONFLICT DO NOTHING against the partial unique index.
     const { error: eventsError } = await db
       .from("events")
-      .upsert(eventRows, { onConflict: "provider_event_uri" });
+      .upsert(eventRows, { ignoreDuplicates: true });
     if (eventsError) throw new Error(`events upsert failed: ${eventsError.message}`);
   }
 
-  // 3. Pack + items (one provider query serves every subscriber).
+  // 3. No new items → no pack (keeps the stream noise-free and high-water honest).
+  if (items.length === 0) {
+    return { pack_id: null, item_count: 0, event_count: eventRows.length, skipped: true };
+  }
+
+  // 4. Unchanged cursor → already persisted this snapshot; do not duplicate.
+  const latest = await latestPack(db, beat.beat_id);
+  if (latest && latest.cursor === pack.cursor) {
+    return { pack_id: latest.pack_id, item_count: items.length, event_count: eventRows.length, skipped: true };
+  }
+
+  // 5. Pack + items (one provider query serves every subscriber).
   const { data: packData, error: packError } = await db
     .from("packs")
     .insert({
@@ -101,7 +116,7 @@ export async function persistCycle(
     if (itemsError) throw new Error(`pack_items insert failed: ${itemsError.message}`);
   }
 
-  // 4. Advance the beat high-water mark.
+  // 6. Advance the beat high-water mark.
   const { error: highWaterError } = await db
     .from("beats")
     .update({ high_water_at: pack.computed_at })
@@ -112,6 +127,7 @@ export async function persistCycle(
     pack_id: (packData as { pack_id: string }).pack_id,
     item_count: items.length,
     event_count: eventRows.length,
+    skipped: false,
   };
 }
 

@@ -11,6 +11,10 @@ export const NEWSAPI_BASE_URL = "https://eventregistry.org/api/v1";
 const ProviderArticleSchema = z
   .object({
     uri: z.string(),
+    /** Public article URL — the provider `uri` is a numeric id, not a URL. */
+    url: z.string().url().optional(),
+    /** Event cluster membership, populated with includeArticleEventUri. */
+    eventUri: z.string().nullable().optional(),
     title: z.string(),
     body: z.string().optional().default(""),
     date: z.string().optional(),
@@ -44,7 +48,8 @@ export type ProviderArticle = z.infer<typeof ProviderArticleSchema>;
 const ProviderEventSchema = z
   .object({
     uri: z.string(),
-    title: z.string().optional(),
+    /** Event titles are localized objects like {"eng": "...", "spa": "..."}. */
+    title: z.union([z.string(), z.record(z.string())]).optional(),
     eventDate: z.string().optional(),
     totalArticleCount: z.number().int().optional(),
     /** Distinct source count in the cluster (may be nested or absent). */
@@ -72,6 +77,16 @@ export type ProviderEvent = z.infer<typeof ProviderEventSchema>;
 export function eventArticleUris(event: ProviderEvent): string[] {
   if (event.articles && event.articles.length > 0) return event.articles.map((a) => a.uri);
   return event.articleUris ?? [];
+}
+
+/** Best-effort event title: prefer English, else the first available language. */
+export function eventTitle(event: ProviderEvent): string | undefined {
+  const title = event.title;
+  if (typeof title === "string") return title;
+  if (title && typeof title === "object") {
+    return title["eng"] ?? Object.values(title)[0];
+  }
+  return undefined;
 }
 
 export interface GetArticlesParams {
@@ -115,6 +130,8 @@ export class NewsApiClient {
       isDuplicateFilter: params.skipDuplicates === false ? undefined : "skipDuplicates",
       // Sentiment is returned via the includeFields mechanism.
       includeFields: params.includeSentiment === false ? undefined : "sentiment",
+      // Event cluster membership per article (drives event_id + corroboration).
+      includeArticleEventUri: true,
     };
 
     const response = await this.fetchImpl(`${this.baseUrl}/article/getArticles`, {

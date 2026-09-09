@@ -47,12 +47,14 @@ async function runCycle(beats = SEED_BEATS): Promise<void> {
       console.log(line);
 
       if (persist) {
-        await persistCycle(beat, articles, events, pack, pack.items);
-        const delivery = await deliverWebhooksForPack(createSupabaseClient(), beat.beat_id, pack);
-        if (delivery.attempted > 0) {
-          console.log(
-            `[pleiades-worker] webhooks: ${delivery.delivered}/${delivery.attempted} delivered (${delivery.failed} failed)`,
-          );
+        const result = await persistCycle(beat, articles, events, pack, pack.items);
+        if (!result.skipped) {
+          const delivery = await deliverWebhooksForPack(createSupabaseClient(), beat.beat_id, pack);
+          if (delivery.attempted > 0) {
+            console.log(
+              `[pleiades-worker] webhooks: ${delivery.delivered}/${delivery.attempted} delivered (${delivery.failed} failed)`,
+            );
+          }
         }
       } else {
         console.log(JSON.stringify(pack, null, 2));

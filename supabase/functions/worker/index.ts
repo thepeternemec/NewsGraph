@@ -25,7 +25,8 @@ async function runCycle(beats: typeof SEED_BEATS) {
 
   const client = new NewsApiClient(apiKey);
   const now = new Date();
-  const windowStart = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+  // 24h window for the first backfill; steady-state cron can narrow this.
+  const windowStart = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const persist = canPersist();
   const summaries: Array<Record<string, unknown>> = [];
 
@@ -59,16 +60,21 @@ async function runCycle(beats: typeof SEED_BEATS) {
 
       if (persist) {
         const result = await persistCycle(beat, articles, events, pack, pack.items);
-        summary.persisted = true;
-        summary.pack_id = result.pack_id;
-        const delivery = await deliverWebhooksForPack(createSupabaseClient(), beat.beat_id, pack);
-        summary.webhooks = { attempted: delivery.attempted, delivered: delivery.delivered, failed: delivery.failed };
+        summary.persisted = !result.skipped;
+        summary.skipped = result.skipped;
+        if (result.pack_id) summary.pack_id = result.pack_id;
+        if (!result.skipped) {
+          const delivery = await deliverWebhooksForPack(createSupabaseClient(), beat.beat_id, pack);
+          summary.webhooks = { attempted: delivery.attempted, delivered: delivery.delivered, failed: delivery.failed };
+        }
       }
 
       summaries.push(summary);
       console.log(`[worker] ${beat.label}: ${pack.item_count} items, ${events.length} events, persisted=${persist}`);
     } catch (error) {
-      console.error(`[worker] cycle failed for ${beat.beat_id}:`, error);
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[worker] cycle failed for ${beat.beat_id}:`, message);
+      summaries.push({ beat_id: beat.beat_id, label: beat.label, error: message });
     }
   }
 

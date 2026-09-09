@@ -17,7 +17,8 @@ const beat: Beat = {
 };
 
 const article = (uri: string, title: string, dateTime: string): ProviderArticle => ({
-  uri: `https://example.com/${uri}`,
+  uri: `id-${uri}`,
+  url: `https://example.com/${uri}`,
   title,
   body: "",
   dateTime,
@@ -52,12 +53,23 @@ test("event linkage fills event_id and corroboration", () => {
     article("a2", "Two", "2026-09-10T07:00:00Z"),
   ];
   const events: ProviderEvent[] = [
-    { uri: "evt-1", articles: [{ uri: "https://example.com/a1" }, { uri: "https://example.com/a2" }] },
+    { uri: "evt-1", articles: [{ uri: "id-a1" }, { uri: "id-a2" }] },
   ];
   const { pack } = buildPack(beat, articles, new Date("2026-09-10T09:00:00Z"), events);
   assert.equal(pack.items[0]?.event_id, "evt-1");
   assert.equal(pack.items[0]?.corroboration, 2); // two distinct sources
   assert.equal(pack.items[1]?.corroboration, 2);
+});
+
+test("article eventUri + event totalArticleCount drive corroboration", () => {
+  const withEvent: ProviderArticle = {
+    ...article("a1", "One", "2026-09-10T08:00:00Z"),
+    eventUri: "evt-9",
+  };
+  const events: ProviderEvent[] = [{ uri: "evt-9", totalArticleCount: 14 }];
+  const { pack } = buildPack(beat, [withEvent], new Date("2026-09-10T09:00:00Z"), events);
+  assert.equal(pack.items[0]?.event_id, "evt-9");
+  assert.equal(pack.items[0]?.corroboration, 14);
 });
 
 test("cursor is base64url of beat_id:highWater and round-trips", () => {

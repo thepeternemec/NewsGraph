@@ -43,7 +43,7 @@ export function providerArticleToItem(
 
   return ItemSchema.parse({
     lede: lede.slice(0, PACK_LIMITS.max_lede_chars),
-    url: article.uri,
+    url: article.url ?? `https://eventregistry.org/article/${article.uri}`,
     source: article.source?.title ?? article.source?.uri ?? "unknown source",
     published_at: publishedAt,
     first_indexed_at: now.toISOString(),
@@ -75,13 +75,23 @@ export function buildPack(
 ): BuildPackResult {
   const { eventUriByArticle, corroborationByEvent } = linkArticlesToEvents(articles, events);
 
+  // Preferred linkage: the article's own eventUri (from includeArticleEventUri)
+  // plus the event's cluster size. Fall back to membership lists when present.
+  const countByEvent = new Map<string, number>();
+  for (const e of events) {
+    const count = e.totalArticleCount ?? e.sourceCount;
+    if (count != null) countByEvent.set(e.uri, count);
+  }
+
   const items = articles
     .slice()
     .sort((a, b) => (b.dateTime ?? b.date ?? "").localeCompare(a.dateTime ?? a.date ?? ""))
     .slice(0, PACK_LIMITS.max_items)
     .map((a) => {
-      const eventUri = eventUriByArticle.get(a.uri) ?? null;
-      const corroboration = eventUri ? (corroborationByEvent.get(eventUri) ?? 0) : 0;
+      const eventUri = a.eventUri ?? eventUriByArticle.get(a.uri) ?? null;
+      const corroboration = eventUri
+        ? (countByEvent.get(eventUri) ?? corroborationByEvent.get(eventUri) ?? 0)
+        : 0;
       return providerArticleToItem(a, now, eventUri, corroboration);
     });
 

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "build:vercel": "npm run build -w @pleiades/contracts && npm run build -w @pleiades/db && npm run build -w @pleiades/sdk && npm run build"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",

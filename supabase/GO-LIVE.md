@@ -102,6 +102,36 @@ curl -s -X POST "$BASE/v1/poll" \
 | Realtime broadcast on packs | live (publication enabled by migration 0003) — consume via `@pleiades/realtime` |
 | Webhook delivery | register via `POST …/api/v1/webhooks`; worker sends signed `pack.advanced` events |
 
+## 9. Custom domain for the API (Pro plan)
+
+Supabase custom domains require the **Pro plan + Custom Domain add-on**.
+Upgrade first at `https://supabase.com/dashboard/org/<org>/billing`, then:
+
+1. Initialize the hostname (or do this in Dashboard → Project Settings → Custom Domains):
+
+```bash
+curl -X POST "https://api.supabase.com/v1/projects/<REF>/custom-hostname/initialize" \
+  -H "Authorization: Bearer <SUPABASE_ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"custom_hostname":"api.pleiades.news"}'
+```
+
+2. Copy the **verification records** from the response and add them at your DNS
+   provider (typically a CNAME for `api` → `<ref>.supabase.co` plus an ownership
+   TXT record).
+3. Once DNS propagates, activate:
+
+```bash
+curl -X POST "https://api.supabase.com/v1/projects/<REF>/custom-hostname/activate" \
+  -H "Authorization: Bearer <SUPABASE_ACCESS_TOKEN>"
+```
+
+4. The API is then served at `https://api.pleiades.news/functions/v1/api/…`;
+   point `@pleiades/sdk` `baseUrl` at `https://api.pleiades.news/functions/v1/api`.
+
+> The management endpoints return `entitlement_required` until the plan is
+> upgraded — that is the expected state on Free.
+
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |

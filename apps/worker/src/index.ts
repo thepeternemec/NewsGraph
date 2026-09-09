@@ -1,7 +1,9 @@
 import { SEED_BEATS } from "@pleiades/contracts";
+import { createSupabaseClient } from "@pleiades/db";
 import { NewsApiClient, toProviderDate } from "./newsapi.js";
 import { buildPack } from "./pack.js";
 import { persistCycle, canPersist } from "./persist.js";
+import { deliverWebhooksForPack } from "./deliver.js";
 
 /**
  * Ingestion cycle — Node dev mirror of the Supabase Edge Function.
@@ -46,6 +48,12 @@ async function runCycle(beats = SEED_BEATS): Promise<void> {
 
       if (persist) {
         await persistCycle(beat, articles, events, pack, pack.items);
+        const delivery = await deliverWebhooksForPack(createSupabaseClient(), beat.beat_id, pack);
+        if (delivery.attempted > 0) {
+          console.log(
+            `[pleiades-worker] webhooks: ${delivery.delivered}/${delivery.attempted} delivered (${delivery.failed} failed)`,
+          );
+        }
       } else {
         console.log(JSON.stringify(pack, null, 2));
       }

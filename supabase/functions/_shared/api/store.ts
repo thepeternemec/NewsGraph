@@ -6,10 +6,10 @@ import {
   createSupabaseClient,
   findBeat,
   latestPack,
-  packItems,
+  loadPack,
   hasSupabaseEnv,
 } from "../db/index.ts";
-import { PackSchema, UnchangedPollSchema, type PollResponse } from "../contracts/index.ts";
+import { UnchangedPollSchema, type PollResponse } from "../contracts/index.ts";
 
 /**
  * Poll/delta snapshot from persisted packs (Phase 1).
@@ -40,18 +40,5 @@ export async function getPollSnapshot(
     });
   }
 
-  const items = await packItems(db, latest.pack_id);
-
-  return PackSchema.parse({
-    beat_id: latest.beat_id,
-    beat_label: beat.label,
-    computed_at: latest.computed_at,
-    freshness_slo_minutes: beat.freshness_slo_minutes,
-    cursor: latest.cursor,
-    moved: true,
-    item_count: items.length,
-    items,
-    token_estimate: latest.token_estimate,
-    receipt_id: latest.receipt_id,
-  });
+  return loadPack(db, beatId, latest);
 }

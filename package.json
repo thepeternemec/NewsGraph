@@ -12,9 +12,9 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w @pleiades/contracts && npm run build -w @pleiades/db && npm run build -w @pleiades/sdk && npm run build -w pleiades-api && npm run build -w pleiades-worker && npm run build -w pleiades-bots && npm run build -w pleiades-web",
-    "build:packages": "npm run build -w @pleiades/contracts && npm run build -w @pleiades/db && npm run build -w @pleiades/sdk",
-    "test": "npm run build -w @pleiades/contracts && npm run build -w pleiades-worker && node --test packages/contracts/dist/*.test.js apps/worker/dist/*.test.js",
+    "build": "npm run build -w @pleiades/contracts && npm run build -w @pleiades/db && npm run build -w @pleiades/sdk && npm run build -w @pleiades/realtime && npm run build -w pleiades-api && npm run build -w pleiades-worker && npm run build -w pleiades-bots && npm run build -w pleiades-web",
+    "build:packages": "npm run build -w @pleiades/contracts && npm run build -w @pleiades/db && npm run build -w @pleiades/sdk && npm run build -w @pleiades/realtime",
+    "test": "npm run build -w @pleiades/contracts && npm run build -w pleiades-worker && npm run build -w @pleiades/realtime && node --test packages/contracts/dist/*.test.js apps/worker/dist/*.test.js packages/realtime/dist/*.test.js",
     "dev": "npm run dev -w pleiades-api",
     "dev:web": "npm run dev -w pleiades-web",
     "dev:worker": "npm run dev -w pleiades-worker",

@@ -65,6 +65,14 @@ const COPIES = [
       [/export \* from "(\.[^"]+)\.js"/g, 'export * from "$1.ts"'],
     ],
   },
+  {
+    src: "packages/contracts/src/webhooks.ts",
+    dst: "contracts/webhooks.ts",
+    rewrite: [
+      ['from "zod"', 'from "npm:zod@^3.24.1"'],
+      [/from "(\.[^"]+)\.js"/g, 'from "$1.ts"'],
+    ],
+  },
 
   // API app + libs
   {
@@ -73,6 +81,7 @@ const COPIES = [
     rewrite: [
       ['from "hono"', 'from "npm:hono@^4.6.14"'],
       ['from "@pleiades/contracts"', 'from "../contracts/index.ts"'],
+      ['from "@pleiades/db"', 'from "../db/index.ts"'],
       ['from "./lib/errors.js"', 'from "./errors.ts"'],
       ['from "./lib/openapi.js"', 'from "./openapi.ts"'],
       ['from "./lib/store.js"', 'from "./store.ts"'],
@@ -153,6 +162,15 @@ const COPIES = [
       ['from "@pleiades/db"', 'from "../db/index.ts"'],
       ['from "@pleiades/contracts"', 'from "../contracts/index.ts"'],
       [/from "\.\/newsapi\.js"/g, 'from "./newsapi.ts"'],
+    ],
+  },
+  {
+    src: "apps/worker/src/deliver.ts",
+    dst: "worker/deliver.ts",
+    rewrite: [
+      ['from "@supabase/supabase-js"', 'from "npm:@supabase/supabase-js@^2.45.4"'],
+      ['from "@pleiades/contracts"', 'from "../contracts/index.ts"'],
+      ['from "@pleiades/db"', 'from "../db/index.ts"'],
     ],
   },
 ];

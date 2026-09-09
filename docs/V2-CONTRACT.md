@@ -95,7 +95,7 @@ Hosting note: first implementation over Supabase Realtime broadcast of pack inse
 
 ```
 POST https://customer.example/hooks/pleiades
-X-Pleiades-Signature: t=1694332800,v1=<HMAC-SHA256(secret, body + t)>
+X-Pleiades-Signature: t=1694332800,v1=<hex HMAC-SHA256(secret, "t.body")>
 X-Pleiades-Event: pack.advanced
 ```
 
@@ -110,7 +110,7 @@ X-Pleiades-Event: pack.advanced
 }
 ```
 
-- Retries with exponential backoff (5s → 24h max), then marks the webhook `webhopk_delivery_failed`.
+- **Shipped in v0.2:** `POST /v1/webhooks` (register — secret returned once), `GET /v1/webhooks`, `DELETE /v1/webhooks/{id}` (revoke), delivery from the ingestion worker with the signature above. Retries with exponential backoff (5s → 24h max) and marking the webhook `webhook_delivery_failed` land with the delivery daemon.
 - Subscriber must respond `2xx` within 5s; ack ≠ processed (document cursor discipline: process-then-commit).
 
 ---

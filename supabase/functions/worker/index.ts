@@ -1,7 +1,9 @@
 import { SEED_BEATS } from "../_shared/contracts/index.ts";
+import { createSupabaseClient } from "../_shared/db/index.ts";
 import { NewsApiClient, toProviderDate } from "../_shared/worker/newsapi.ts";
 import { buildPack } from "../_shared/worker/pack.ts";
 import { persistCycle, canPersist } from "../_shared/worker/persist.ts";
+import { deliverWebhooksForPack } from "../_shared/worker/deliver.ts";
 
 /**
  * Ingestion cycle — Supabase Edge Function (Phase 1).
@@ -59,6 +61,8 @@ async function runCycle(beats: typeof SEED_BEATS) {
         const result = await persistCycle(beat, articles, events, pack, pack.items);
         summary.persisted = true;
         summary.pack_id = result.pack_id;
+        const delivery = await deliverWebhooksForPack(createSupabaseClient(), beat.beat_id, pack);
+        summary.webhooks = { attempted: delivery.attempted, delivered: delivery.delivered, failed: delivery.failed };
       }
 
       summaries.push(summary);

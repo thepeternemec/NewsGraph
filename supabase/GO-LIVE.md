@@ -99,7 +99,8 @@ curl -s -X POST "$BASE/v1/poll" \
 | Catalog, tools, pricing, openapi | `…/functions/v1/api/*` |
 | Poll / delta with real packs | same — served from persisted packs |
 | 24/7 ingestion | worker cron (`*/15 * * * *`) |
-| Realtime broadcast on packs | ready for Phase 2 clients |
+| Realtime broadcast on packs | live (publication enabled by migration 0003) — consume via `@pleiades/realtime` |
+| Webhook delivery | register via `POST …/api/v1/webhooks`; worker sends signed `pack.advanced` events |
 
 ## Troubleshooting
 

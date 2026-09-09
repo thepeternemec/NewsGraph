@@ -50,11 +50,12 @@ System design for the Real-Time News Terminal. Phase tags refer to [ROADMAP.md](
 | Component | Repo path | Phase | Notes |
 |---|---|---|---|
 | Canonical schemas | `packages/contracts` | 0 | Zod schemas + types + error codes + seed catalog (20 beats) |
-| TypeScript SDK | `packages/sdk` | 0 | Thin typed client for catalog/poll/delta |
+| TypeScript SDK | `packages/sdk` | 0 | Typed client: catalog/poll/delta + webhook registration |
+| Realtime client | `packages/realtime` | 2 | `PleiadesRealtime`: pack inserts → canonical packs via Supabase Realtime |
 | REST API (runtime) | `supabase/functions/api` | 0–4 | Hono on Supabase Edge Functions — the canonical deployment |
 | REST API (dev mirror) | `apps/api` | 0–4 | Same routes on Node for local dev; optional Vercel fallback |
-| Ingestion worker (runtime) | `supabase/functions/worker` | 1 | Scheduled Edge Function: newsapi.ai → packs |
-| Ingestion worker (dev mirror) | `apps/worker` | 1 | Node dev surface; logic synced to the function |
+| Ingestion worker (runtime) | `supabase/functions/worker` | 1–2 | Scheduled Edge Function: newsapi.ai → packs → webhook delivery |
+| Ingestion worker (dev mirror) | `apps/worker` | 1–2 | Node dev surface; logic synced to the function |
 | Bots | `apps/bots` | 3 | Telegram/Discord delivery over the pack pipeline |
 | Landing site | `apps/web` | parallel | pleiades.news — the only thing hosted on Vercel |
 | DB schema | `supabase/migrations` | 1 | packs, items, ledgers, receipts, webhooks |

@@ -1,5 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { BeatSchema, ItemSchema, type Beat, type Item } from "@pleiades/contracts";
+import {
+  BeatSchema,
+  ItemSchema,
+  PackSchema,
+  type Beat,
+  type Item,
+  type Pack,
+  type Webhook,
+} from "@pleiades/contracts";
 
 /** Read-side queries used by the API Edge Function. */
 
@@ -79,4 +87,80 @@ export async function packItems(db: SupabaseClient, packId: string): Promise<Ite
     if (parsed.success) items.push(parsed.data);
   }
   return items;
+}
+
+/** Assemble the canonical pack from a packs row + its items (API and Realtime). */
+export async function loadPack(
+  db: SupabaseClient,
+  beatId: string,
+  latest: LatestPackRow,
+): Promise<Pack | null> {
+  const beat = await findBeat(db, beatId);
+  if (!beat) return null;
+  const items = await packItems(db, latest.pack_id);
+  return PackSchema.parse({
+    beat_id: latest.beat_id,
+    beat_label: beat.label,
+    computed_at: latest.computed_at,
+    freshness_slo_minutes: beat.freshness_slo_minutes,
+    cursor: latest.cursor,
+    moved: true,
+    item_count: items.length,
+    items,
+    token_estimate: latest.token_estimate,
+    receipt_id: latest.receipt_id,
+  });
+}
+
+// ── Webhooks (Phase 2) ───────────────────────────────────────────────
+
+export interface WebhookRow {
+  webhook_id: string;
+  url: string;
+  beat_ids: string[];
+  hmac_secret: string;
+  state: "active" | "failed" | "revoked";
+  created_at: string;
+}
+
+export async function insertWebhook(
+  db: SupabaseClient,
+  row: { url: string; beat_ids: string[]; hmac_secret: string },
+): Promise<WebhookRow> {
+  const { data, error } = await db.from("webhooks").insert(row).select().single();
+  if (error) throw new Error(`insertWebhook failed: ${error.message}`);
+  return data as WebhookRow;
+}
+
+export async function listWebhooks(db: SupabaseClient): Promise<Webhook[]> {
+  const { data, error } = await db
+    .from("webhooks")
+    .select("webhook_id, url, beat_ids, state, created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`listWebhooks failed: ${error.message}`);
+  return (data ?? []) as Webhook[];
+}
+
+export async function revokeWebhook(db: SupabaseClient, webhookId: string): Promise<boolean> {
+  const { error } = await db
+    .from("webhooks")
+    .update({ state: "revoked" })
+    .eq("webhook_id", webhookId)
+    .eq("state", "active");
+  if (error) throw new Error(`revokeWebhook failed: ${error.message}`);
+  return true;
+}
+
+/** Active webhooks subscribed to a beat (full rows incl. secret, for delivery). */
+export async function activeWebhooksForBeat(
+  db: SupabaseClient,
+  beatId: string,
+): Promise<WebhookRow[]> {
+  const { data, error } = await db
+    .from("webhooks")
+    .select("*")
+    .contains("beat_ids", [beatId])
+    .eq("state", "active");
+  if (error) throw new Error(`activeWebhooksForBeat failed: ${error.message}`);
+  return (data ?? []) as WebhookRow[];
 }

@@ -100,6 +100,42 @@ export const openapi = {
         },
       },
     },
+    "/v1/webhooks": {
+      post: {
+        operationId: "registerWebhook",
+        summary: "Register a webhook (HMAC secret returned exactly once)",
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/WebhookRegistrationRequest" } } },
+        },
+        responses: {
+          "201": { description: "Registered webhook with secret" },
+          "400": { description: "invalid_request" },
+          "404": { description: "beat_unavailable" },
+          "503": { description: "database_not_configured" },
+        },
+      },
+      get: {
+        operationId: "listWebhooks",
+        summary: "List registered webhooks (secrets never returned)",
+        responses: {
+          "200": { description: "Webhook list" },
+          "503": { description: "database_not_configured" },
+        },
+      },
+    },
+    "/v1/webhooks/{webhook_id}": {
+      delete: {
+        operationId: "revokeWebhook",
+        summary: "Revoke a webhook by id",
+        parameters: [{ name: "webhook_id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          "200": { description: "Revoked" },
+          "400": { description: "invalid_request" },
+          "503": { description: "database_not_configured" },
+        },
+      },
+    },
   },
   components: {
     schemas: {
@@ -149,6 +185,15 @@ export const openapi = {
           beat_id: { type: "string", pattern: "^b_[0-9a-f]{12}$" },
           cursor: { type: "string", maxLength: 2048 },
           depth_days: { type: "integer", minimum: 1, maximum: 30 },
+        },
+        additionalProperties: false,
+      },
+      WebhookRegistrationRequest: {
+        type: "object",
+        required: ["url", "beat_ids"],
+        properties: {
+          url: { type: "string", format: "uri" },
+          beat_ids: { type: "array", items: { type: "string", pattern: "^b_[0-9a-f]{12}$" }, minItems: 1, maxItems: 20 },
         },
         additionalProperties: false,
       },

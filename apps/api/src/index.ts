@@ -5,7 +5,16 @@ import {
   PRICE_CARD,
   SEED_BEATS,
   TOOL_DEFINITIONS,
+  WebhookRegisteredSchema,
+  WebhookRegistrationRequestSchema,
 } from "@pleiades/contracts";
+import {
+  createSupabaseClient,
+  hasSupabaseEnv,
+  insertWebhook,
+  listWebhooks,
+  revokeWebhook,
+} from "@pleiades/db";
 import { errorByCode } from "./lib/errors.js";
 import { openapi } from "./lib/openapi.js";
 import { getPollSnapshot } from "./lib/store.js";
@@ -137,6 +146,79 @@ app.post("/v1/delta", async (c) => {
   return errorByCode(c, "pack_not_ready", {
     message: "No packs yet for this beat. Ingestion produces them on its schedule.",
   });
+});
+
+// ── Webhooks (Phase 2) ──────────────────────────────────────────────
+// Single-operator mode until workspaces land (Phase 6): no per-agent
+// scoping yet. The secret is returned exactly once, at registration.
+app.post("/v1/webhooks", async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const parsed = WebhookRegistrationRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    return errorByCode(c, "invalid_request", { detail: parsed.error.issues });
+  }
+  const { url, beat_ids } = parsed.data;
+
+  const target = new URL(url);
+  if (target.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(target.hostname)) {
+    return errorByCode(c, "invalid_request", { detail: "url must be https" });
+  }
+  const unknown = beat_ids.filter((id) => !SEED_BEATS.some((b) => b.beat_id === id));
+  if (unknown.length > 0) {
+    return errorByCode(c, "beat_unavailable", { detail: unknown });
+  }
+  if (!hasSupabaseEnv()) return errorByCode(c, "database_not_configured");
+  const db = createSupabaseClient();
+  if (!db) return errorByCode(c, "database_not_configured");
+
+  const secret =
+    crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+  try {
+    const row = await insertWebhook(db, { url, beat_ids, hmac_secret: secret });
+    return c.json(
+      WebhookRegisteredSchema.parse({
+        webhook_id: row.webhook_id,
+        url: row.url,
+        beat_ids: row.beat_ids,
+        state: row.state,
+        created_at: row.created_at,
+        secret,
+      }),
+      201,
+    );
+  } catch (error) {
+    console.error("webhook registration failed:", error);
+    return errorByCode(c, "internal_error");
+  }
+});
+
+app.get("/v1/webhooks", async (c) => {
+  if (!hasSupabaseEnv()) return errorByCode(c, "database_not_configured");
+  const db = createSupabaseClient();
+  if (!db) return errorByCode(c, "database_not_configured");
+  try {
+    return c.json({ webhooks: await listWebhooks(db) });
+  } catch (error) {
+    console.error("webhook list failed:", error);
+    return errorByCode(c, "internal_error");
+  }
+});
+
+app.delete("/v1/webhooks/:id", async (c) => {
+  const id = c.req.param("id");
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return errorByCode(c, "invalid_request", { detail: "webhook_id must be a uuid" });
+  }
+  if (!hasSupabaseEnv()) return errorByCode(c, "database_not_configured");
+  const db = createSupabaseClient();
+  if (!db) return errorByCode(c, "database_not_configured");
+  try {
+    await revokeWebhook(db, id);
+    return c.json({ webhook_id: id, state: "revoked" });
+  } catch (error) {
+    console.error("webhook revoke failed:", error);
+    return errorByCode(c, "internal_error");
+  }
 });
 
 // ── Docs & spec ─────────────────────────────────────────────────────

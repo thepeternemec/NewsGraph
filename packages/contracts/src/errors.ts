@@ -21,6 +21,7 @@ export const ERROR_CODES = [
   "beat_quota_exceeded",
   "webhook_delivery_failed",
   "unsupported_rail",
+  "database_not_configured",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -59,6 +60,7 @@ export function errorStatus(code: ErrorCode): number {
       return 501;
     case "pack_not_ready":
     case "resolution_unavailable":
+    case "database_not_configured":
       return 503;
     case "webhook_delivery_failed":
       return 410;

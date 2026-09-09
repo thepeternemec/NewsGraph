@@ -2,9 +2,15 @@ import {
   CatalogResponseSchema,
   PollRequestSchema,
   PollResponseSchema,
+  WebhookListResponseSchema,
+  WebhookRegisteredSchema,
+  WebhookRegistrationRequestSchema,
   type CatalogResponse,
   type PollRequest,
   type PollResponse,
+  type WebhookListResponse,
+  type WebhookRegistered,
+  type WebhookRegistrationRequest,
 } from "@pleiades/contracts";
 
 export interface PleiadesClientOptions {
@@ -69,6 +75,27 @@ export class PleiadesClient {
       body: JSON.stringify(PollRequestSchema.parse(req)),
     });
     return PollResponseSchema.parse(body);
+  }
+
+  /** Register a webhook; the HMAC secret is returned exactly once. */
+  async registerWebhook(req: WebhookRegistrationRequest): Promise<WebhookRegistered> {
+    const body = await this.request("/v1/webhooks", {
+      method: "POST",
+      body: JSON.stringify(WebhookRegistrationRequestSchema.parse(req)),
+    });
+    return WebhookRegisteredSchema.parse(body);
+  }
+
+  /** List webhooks (secrets never returned). */
+  async listWebhooks(): Promise<WebhookListResponse> {
+    const body = await this.request("/v1/webhooks", { method: "GET" });
+    return WebhookListResponseSchema.parse(body);
+  }
+
+  /** Revoke a webhook by id. */
+  async revokeWebhook(webhookId: string): Promise<{ webhook_id: string; state: string }> {
+    const body = await this.request(`/v1/webhooks/${webhookId}`, { method: "DELETE" });
+    return body as { webhook_id: string; state: string };
   }
 
   private async request(path: string, init: RequestInit): Promise<unknown> {

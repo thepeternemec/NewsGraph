@@ -12,7 +12,7 @@ System design for the Real-Time News Terminal. Phase tags refer to [ROADMAP.md](
                                              │ getArticles / getEvents
                                              ▼
  ┌───────────────────────────────────────────────────────────────────────────────┐
- │  apps/worker — ingestion & pack generation (Phase 1)                           │
+ │  ingestion worker (Supabase Edge Function, cron) — Phase 1                     │
  │  scheduler → fetch per beat → dedupe → event linkage → LLM triage (Phase 5)    │
  │  → materialize pack (≤8 items, ≤800 tokens) → advance high-water mark          │
  └───────────────────────┬───────────────────────────────────────────────────────┘
@@ -26,8 +26,8 @@ System design for the Real-Time News Terminal. Phase tags refer to [ROADMAP.md](
                  │ reads                             │ Realtime / poll
                  ▼                                   ▼
  ┌──────────────────────────┐        ┌───────────────────────────────────────────┐
- │  apps/api (Hono)         │        │  Delivery edges                             │
- │  /v1/catalog /tools      │        │  · WS gateway (Phase 2)                    │
+ │  REST API (Edge Function)│        │  Delivery edges                             │
+ │  /v1/catalog /tools      │        │  · WS push via Supabase Realtime (Phase 2) │
  │  /v1/poll /delta (meter) │        │  · webhooks → customer CMS (Phase 2)       │
  │  /v1/pricing /openapi    │        │  · Telegram / Discord bots (Phase 3)       │
  │  x402 rails (Phase 4)    │        │  · MCP server (Phase 4)                    │
@@ -51,12 +51,16 @@ System design for the Real-Time News Terminal. Phase tags refer to [ROADMAP.md](
 |---|---|---|---|
 | Canonical schemas | `packages/contracts` | 0 | Zod schemas + types + error codes + seed catalog (20 beats) |
 | TypeScript SDK | `packages/sdk` | 0 | Thin typed client for catalog/poll/delta |
-| REST API | `apps/api` | 0–4 | Hono; Vercel-deployable via `src/vercel.ts` |
-| Ingestion worker | `apps/worker` | 1 | newsapi.ai client + pack builder; scheduler fan-out per beat |
+| REST API (runtime) | `supabase/functions/api` | 0–4 | Hono on Supabase Edge Functions — the canonical deployment |
+| REST API (dev mirror) | `apps/api` | 0–4 | Same routes on Node for local dev; optional Vercel fallback |
+| Ingestion worker (runtime) | `supabase/functions/worker` | 1 | Scheduled Edge Function: newsapi.ai → packs |
+| Ingestion worker (dev mirror) | `apps/worker` | 1 | Node dev surface; logic synced to the function |
 | Bots | `apps/bots` | 3 | Telegram/Discord delivery over the pack pipeline |
-| Landing site | `apps/web` | parallel | pleiades.news vision page |
-| DB schema | `infra/supabase/migrations` | 1 | packs, items, ledgers, receipts, webhooks |
-| CI | `.github/workflows/ci.yml` | 0 | install → build → test |
+| Landing site | `apps/web` | parallel | pleiades.news — the only thing hosted on Vercel |
+| DB schema | `supabase/migrations` | 1 | packs, items, ledgers, receipts, webhooks |
+| Deno shared modules | `supabase/functions/_shared` | 0 | GENERATED — keep in sync via `npm run sync:supabase` |
+| Sync generator | `scripts/sync-supabase.mjs` | 0 | Single source of truth → Deno bundles |
+| CI | `.github/workflows/ci.yml` | 0 | build → test → drift check + deno check |
 
 ## 4. Data flow — one beat cycle
 
@@ -77,12 +81,17 @@ beat (catalog) ─ refresh_interval_minutes ─▶ scheduler
 - Rails today: `manual` (legacy v0.1) · `prepaid` · later `x402`, `acp`, `stripe`.
 - Metered calls require an idempotency key (Phase 0 fix F2): repeat of a settled key replays the original response and receipt, never re-debits.
 
-## 6. Deployment
+## 6. Deployment — Supabase-first (decided)
 
-- **API + web:** Vercel (Hono via `src/vercel.ts`; Next.js app). Monorepo root-directory config per project.
-- **Worker:** dedicated always-on host (Railway / Fly / ECS) or Supabase Edge + pg_cron — Vercel Cron plan limits make it unsuitable for per-beat fan-out.
-- **WS:** Supabase Realtime first; dedicated gateway later if fan-out grows.
-- **Secrets:** `.env` (never committed); provider key = `NEWSAPI_API_KEY`; Supabase keys per environment.
+**Supabase is the single platform** for the backend; **Vercel hosts only the website/docs**.
+
+- **Postgres, Auth, Storage:** Supabase. Schema in `supabase/migrations` (`supabase db push`).
+- **REST API:** `supabase/functions/api` Edge Function (public, `verify_jwt = false`). `apps/api` remains a Node dev mirror — same routes, no drift (generated from canonical sources).
+- **Ingestion:** `supabase/functions/worker` Edge Function, scheduled via `[functions.worker] schedule` in `config.toml` (or pg_cron for per-beat fan-out later). One invocation = one pass; keep enrichment bounded to fit Edge Function limits.
+- **Push:** Supabase Realtime on `packs` inserts — no dedicated WebSocket server. A dedicated gateway is only a later option if fan-out outgrows Realtime plan caps.
+- **Web/docs:** `apps/web` (Next.js) on Vercel — the only Vercel usage. Legacy v0.1 origin `openbeat.vercel.app` stays until cutover.
+- **Deno shared code:** `supabase/functions/_shared` is generated by `npm run sync:supabase` from `packages/contracts` + `apps/{api,worker}/src` (single source of truth). CI fails on drift (`npm run check:supabase`) and type-checks the functions with Deno.
+- **Secrets:** `supabase secrets set NEWSAPI_API_KEY …`; `.env` for local Node dev (never committed).
 
 ## 7. Phase alignment
 

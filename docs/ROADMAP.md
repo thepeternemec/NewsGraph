@@ -118,7 +118,7 @@ Notes and decisions:
 - **Multi-concept queries:** verify in the provider sandbox whether `getArticles` accepts arrays of `conceptUri` with OR semantics; if not, one call per concept with client-side merge.
 - **Event clustering** is the noise-killer: `corroboration` gives "same story, N sources" velocity for free, feeding the later "signal" layer.
 - **F5 fix:** keep a small re-ingest replay window (e.g., re-query `[now-2h, now]` each run) and store items keyed by event time, so a late-arriving item can be injected into the *next* pack rather than lost behind a cursor. Alternatively move cursors to ingestion-time ordering; decide in Phase 1.
-- **Scheduler host:** Vercel Cron has plan limits and is ill-suited to per-beat fan-out. Recommend a dedicated worker (Railway/Fly/ECS) or Supabase Edge + pg_cron holding the scheduler; keep the API on Vercel. The scheduler must be resilient (at-least-once, dedupe by provider URI).
+- **Scheduler host (decided):** Supabase scheduled Edge Functions (`[functions.worker] schedule` in `config.toml`), with pg_cron as the per-beat fan-out option. Vercel is used only for the website/docs. The scheduler must be resilient (at-least-once, dedupe by provider URI).
 
 ### 4.3 Acceptance criteria
 
@@ -134,7 +134,7 @@ Notes and decisions:
 
 - `wss://…/v1/ws?beats=b_x,b_y&token=…` subscribing to pack-advance events. Frames: `hello`, `pack` (delta page shape), `receipt`, `heartbeat`, `error`, `resume(cursor)`.
 - Keep pull (poll/delta) as the reference API; push is an accelerator, not a replacement. Every WS event reuses the exact pack/cursor/receipt semantics — no second mental model.
-- **Hosting reality:** Vercel serverless is not a great WebSocket host. Two pragmatic options: (a) **Supabase Realtime** broadcasting on pack-table inserts (least infra, already in stack), or (b) a small always-on WS gateway in the Phase 1 worker. Choose (a) first; revisit if fan-out grows.
+- **Hosting reality (decided):** Supabase Realtime broadcasting on pack-table inserts is the push path (least infra, already the platform). A small always-on WS gateway is only a fallback if fan-out outgrows Realtime plan caps.
 - Signed **webhooks** as the self-hostable alternative: `POST /v1/webhooks` (URL, beats, HMAC secret), signed `X-Pleiades-Signature`, retry with backoff, delivery log. This is also the foundation for Phase 3 bots and for media-company CMS integrations.
 
 **Acceptance:** a client receives a new pack ≤5s after pack generation; missed events recoverable via cursor `resume`; webhook delivery auditable.

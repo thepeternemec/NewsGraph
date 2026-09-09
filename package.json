@@ -18,7 +18,9 @@
     "dev": "npm run dev -w pleiades-api",
     "dev:web": "npm run dev -w pleiades-web",
     "dev:worker": "npm run dev -w pleiades-worker",
-    "dev:bots": "npm run dev -w pleiades-bots"
+    "dev:bots": "npm run dev -w pleiades-bots",
+    "sync:supabase": "node scripts/sync-supabase.mjs",
+    "check:supabase": "node scripts/sync-supabase.mjs --check"
   },
   "allowScripts": {
     "esbuild@0.28.2": true

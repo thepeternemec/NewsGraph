@@ -1,3 +1,7 @@
+// GENERATED FILE — do not edit directly.
+// Source of truth: packages/contracts + apps/{api,worker}/src.
+// Regenerate with: npm run sync:supabase
+
 import {
   ItemSchema,
   PackSchema,
@@ -5,8 +9,8 @@ import {
   type Beat,
   type Item,
   type Pack,
-} from "@pleiades/contracts";
-import type { ProviderArticle } from "./newsapi.js";
+} from "../contracts/index.ts";
+import type { ProviderArticle } from "./newsapi.ts";
 
 /**
  * Build a bounded pack from provider articles.

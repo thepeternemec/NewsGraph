@@ -1,0 +1,149 @@
+#!/usr/bin/env node
+/**
+ * Sync canonical Node sources into supabase/functions/_shared for Deno.
+ *
+ * Single source of truth: packages/contracts + apps/{api,worker}/src.
+ * The generated files under supabase/functions/_shared/ are committed so the
+ * functions are deployable without running this script, but any change to the
+ * canonical sources must be followed by:
+ *
+ *   npm run sync:supabase
+ *
+ * CI enforces freshness with: npm run sync:supabase -- --check
+ */
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const SHARED = join(ROOT, "supabase", "functions", "_shared");
+
+const HEADER = `// GENERATED FILE — do not edit directly.
+// Source of truth: packages/contracts + apps/{api,worker}/src.
+// Regenerate with: npm run sync:supabase
+
+`;
+
+/** [source, target] pairs plus per-file rewrite rules. */
+const COPIES = [
+  // contracts (schemas + seed + tools + errors)
+  {
+    src: "packages/contracts/src/beats.ts",
+    dst: "contracts/beats.ts",
+    rewrite: [['from "zod"', 'from "npm:zod@^3.24.1"']],
+  },
+  {
+    src: "packages/contracts/src/packs.ts",
+    dst: "contracts/packs.ts",
+    rewrite: [['from "zod"', 'from "npm:zod@^3.24.1"'], [/from "(\.[^"]+)\.js"/g, 'from "$1.ts"']],
+  },
+  {
+    src: "packages/contracts/src/receipts.ts",
+    dst: "contracts/receipts.ts",
+    rewrite: [['from "zod"', 'from "npm:zod@^3.24.1"']],
+  },
+  {
+    src: "packages/contracts/src/errors.ts",
+    dst: "contracts/errors.ts",
+    rewrite: [],
+  },
+  {
+    src: "packages/contracts/src/tools.ts",
+    dst: "contracts/tools.ts",
+    rewrite: [],
+  },
+  {
+    src: "packages/contracts/src/seed.ts",
+    dst: "contracts/seed.ts",
+    rewrite: [[/from "(\.[^"]+)\.js"/g, 'from "$1.ts"']],
+  },
+  {
+    src: "packages/contracts/src/index.ts",
+    dst: "contracts/index.ts",
+    rewrite: [
+      [/from "(\.[^"]+)\.js"/g, 'from "$1.ts"'],
+      [/export \* from "(\.[^"]+)\.js"/g, 'export * from "$1.ts"'],
+    ],
+  },
+
+  // API app + libs
+  {
+    src: "apps/api/src/index.ts",
+    dst: "api/app.ts",
+    rewrite: [
+      ['from "hono"', 'from "npm:hono@^4.6.14"'],
+      ['from "@pleiades/contracts"', 'from "../contracts/index.ts"'],
+      ['from "./lib/errors.js"', 'from "./errors.ts"'],
+      ['from "./lib/openapi.js"', 'from "./openapi.ts"'],
+    ],
+  },
+  {
+    src: "apps/api/src/lib/errors.ts",
+    dst: "api/errors.ts",
+    rewrite: [
+      ['from "hono"', 'from "npm:hono@^4.6.14"'],
+      ['from "@pleiades/contracts"', 'from "../contracts/index.ts"'],
+    ],
+  },
+  {
+    src: "apps/api/src/lib/openapi.ts",
+    dst: "api/openapi.ts",
+    rewrite: [],
+  },
+
+  // Worker: provider client + pack builder
+  {
+    src: "apps/worker/src/newsapi.ts",
+    dst: "worker/newsapi.ts",
+    rewrite: [['from "zod"', 'from "npm:zod@^3.24.1"']],
+  },
+  {
+    src: "apps/worker/src/pack.ts",
+    dst: "worker/pack.ts",
+    rewrite: [
+      ['from "@pleiades/contracts"', 'from "../contracts/index.ts"'],
+      ['from "./newsapi.js"', 'from "./newsapi.ts"'],
+    ],
+  },
+];
+
+function transform(content, rules) {
+  let out = content;
+  // Rules are [pattern, replacement] pairs.
+  for (const [pattern, replacement] of rules) {
+    out = out.replace(pattern, replacement);
+  }
+  return out;
+}
+
+let failures = 0;
+
+for (const { src, dst, rewrite } of COPIES) {
+  const source = join(ROOT, src);
+  const target = join(SHARED, dst);
+  const generated = HEADER + transform(readFileSync(source, "utf8"), rewrite);
+
+  if (process.argv.includes("--check")) {
+    let existing = "";
+    try {
+      existing = readFileSync(target, "utf8");
+    } catch {
+      /* missing = drift */
+    }
+    if (existing !== generated) {
+      failures += 1;
+      console.error(`DRIFT: supabase/functions/_shared/${dst} is out of date. Run: npm run sync:supabase`);
+    }
+  } else {
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, generated);
+    console.log(`synced ${relative(ROOT, target)}`);
+  }
+}
+
+if (failures > 0) {
+  process.exit(1);
+}
+if (process.argv.includes("--check")) {
+  console.log("supabase/_shared is in sync with canonical sources.");
+}

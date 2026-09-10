@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import FluidTabs from "@/components/ui/fluid-tabs/fluid-tabs";
-import KnowledgeGraph from "@/components/knowledge-graph";
+import Antigravity from "@/components/antigravity";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
@@ -146,8 +146,24 @@ export default function Dashboard() {
               </div>
 
               <div className="panel-card" style={{ marginTop: 20 }}>
-                <h2>Knowledge graph — beats &amp; event clusters</h2>
-                <KnowledgeGraph byBeat={stats?.by_beat ?? []} clusters={stats?.clusters ?? []} />
+                <h2>Signal field</h2>
+                <div style={{ width: "100%", height: 400, position: "relative" }}>
+                  <Antigravity
+                    count={320}
+                    magnetRadius={8}
+                    ringRadius={7}
+                    waveSpeed={0.4}
+                    waveAmplitude={0.8}
+                    particleSize={1.6}
+                    lerpSpeed={0.05}
+                    color="#ededE8"
+                    autoAnimate
+                    particleVariance={0.7}
+                    pulseSpeed={3}
+                    particleShape="capsule"
+                    fieldStrength={10}
+                  />
+                </div>
               </div>
 
               <div className="panel-card" style={{ marginTop: 20, padding: 0 }}>

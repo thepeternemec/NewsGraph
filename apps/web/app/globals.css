@@ -773,3 +773,47 @@ h1 {
   :root { --grid-gap: 32px; }
   .unified-hero, .context-head { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ═══════════ feed rows: fixed columns so every line aligns ═══════════
+   tag (fixed) · lede (flexible) · source (fixed, right-aligned)
+   Replaces the old flex row whose text start drifted with tag width. */
+.feed-line {
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr) 172px;
+  column-gap: 20px;
+  align-items: start;
+  padding: var(--row) var(--pad);
+  background: #0b0b0b;
+}
+.feed-line .tag {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-top: 2px;
+}
+.feed-line .txt {
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.feed-line .src {
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-top: 2px;
+}
+/* RTL snippets (e.g. Arabic) still start on the text column line */
+.feed-line .txt[dir="rtl"] { text-align: right; }
+
+@media (max-width: 820px) {
+  .feed-line {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 4px;
+  }
+  .feed-line .src { text-align: left; }
+  .feed-line .txt { -webkit-line-clamp: 4; }
+}

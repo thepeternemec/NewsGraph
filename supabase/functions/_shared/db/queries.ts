@@ -203,6 +203,7 @@ export interface DashboardStats {
   }>;
   clusters: Array<{
     event_id: string;
+    beat_id: string;
     title: string | null;
     source_count: number;
     beat_label: string;
@@ -298,12 +299,13 @@ export async function getDashboardStats(db: SupabaseClient): Promise<DashboardSt
   const clusters = events
     .map((ev) => ({
       event_id: ev.event_id,
+      beat_id: ev.beat_id,
       title: ev.title,
       source_count: ev.source_count,
       beat_label: labelById.get(ev.beat_id) ?? "unknown",
     }))
     .sort((a, b) => b.source_count - a.source_count)
-    .slice(0, 30);
+    .slice(0, 40);
 
   const top_corroborated = items
     .filter((it) => it.corroboration > 0)

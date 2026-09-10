@@ -1,16 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import FluidTabs from "@/components/ui/fluid-tabs/fluid-tabs";
+import KnowledgeGraph from "@/components/knowledge-graph";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
@@ -41,6 +33,7 @@ interface Stats {
   }>;
   clusters: Array<{
     event_id: string;
+    beat_id: string;
     title: string | null;
     source_count: number;
     beat_label: string;
@@ -153,27 +146,8 @@ export default function Dashboard() {
               </div>
 
               <div className="panel-card" style={{ marginTop: 20 }}>
-                <h2>Signals per beat</h2>
-                <ResponsiveContainer width="100%" height={340}>
-                  <BarChart data={stats?.by_beat ?? []} layout="vertical" margin={{ left: 130 }}>
-                    <CartesianGrid stroke="#2d2d2d" horizontal={false} />
-                    <XAxis type="number" stroke="#7f7f7a" allowDecimals={false} />
-                    <YAxis
-                      type="category"
-                      dataKey="label"
-                      stroke="#7f7f7a"
-                      width={124}
-                      tick={{ fontSize: 10, fontFamily: "var(--font-mono)" }}
-                    />
-                    <Tooltip
-                      contentStyle={{ background: "#0d0d0d", border: "1px solid #2d2d2d", borderRadius: 8 }}
-                      labelStyle={{ color: "#ededE8" }}
-                      itemStyle={{ color: "#ededE8" }}
-                      cursor={{ fill: "#ffffff08" }}
-                    />
-                    <Bar dataKey="items" fill="#ededE8" radius={[0, 3, 3, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <h2>Knowledge graph — beats &amp; event clusters</h2>
+                <KnowledgeGraph byBeat={stats?.by_beat ?? []} clusters={stats?.clusters ?? []} />
               </div>
 
               <div className="panel-card" style={{ marginTop: 20, padding: 0 }}>

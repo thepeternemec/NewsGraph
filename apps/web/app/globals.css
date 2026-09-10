@@ -817,3 +817,101 @@ h1 {
   .feed-line .src { text-align: left; }
   .feed-line .txt { -webkit-line-clamp: 4; }
 }
+
+/* ═══════════ signal field: particles + live headline labels ═══════════ */
+.signal-field {
+  position: relative;
+  width: 100%;
+  height: 460px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: radial-gradient(120% 100% at 50% 0%, #0e0e0e 0%, #070707 70%);
+}
+.signal-canvas { position: absolute; inset: 0; }
+.signal-labels { position: absolute; inset: 0; pointer-events: none; }
+
+.signal-label {
+  position: absolute;
+  display: block;
+  width: 208px;
+  max-width: 30%;
+  padding: 9px 11px;
+  border: 1px solid #262626;
+  border-radius: 9px;
+  background: rgba(8, 8, 8, 0.72);
+  backdrop-filter: blur(7px);
+  text-decoration: none;
+  opacity: 0;
+  pointer-events: auto;
+  animation:
+    signalIn 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+    signalFloat 7s ease-in-out infinite;
+  transition: border-color 0.22s, background 0.22s;
+}
+.signal-label:hover {
+  border-color: #ededE8;
+  background: rgba(22, 22, 22, 0.94);
+  z-index: 5;
+}
+.signal-label .tag {
+  display: block;
+  color: #767671;
+  font: 8px var(--font-mono), monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.signal-label .headline {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 5px;
+  color: #ededE8;
+  font-size: 11.5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.signal-label .meta {
+  display: block;
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px solid #1f1f1f;
+  color: #7f7f7a;
+  font: 8px var(--font-mono), monospace;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.signal-empty {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: #767671;
+  font: 9px var(--font-mono), monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+@keyframes signalIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes signalFloat {
+  0%, 100% { margin-top: 0; }
+  50% { margin-top: -9px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal-label { animation: signalIn 0.3s ease forwards; }
+}
+
+@media (max-width: 820px) {
+  .signal-field { height: 520px; }
+  .signal-label { width: 172px; max-width: 46%; padding: 8px 9px; }
+  .signal-label .headline { -webkit-line-clamp: 2; font-size: 11px; }
+}

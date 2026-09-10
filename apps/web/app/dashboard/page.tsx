@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Antigravity from "@/components/antigravity";
+import SignalField from "@/components/signal-field";
 import { BorderBeam } from "border-beam";
 
 const API_BASE =
@@ -166,23 +166,7 @@ export default function Dashboard() {
 
               <BorderBeam size="md" colorVariant="mono" theme="dark" strength={0.5}><div className="panel-card" style={{ marginTop: 20 }}>
                 <h2>Signal field</h2>
-                <div style={{ width: "100%", height: 400, position: "relative" }}>
-                  <Antigravity
-                    count={320}
-                    magnetRadius={8}
-                    ringRadius={7}
-                    waveSpeed={0.4}
-                    waveAmplitude={0.8}
-                    particleSize={1.6}
-                    lerpSpeed={0.05}
-                    color="#ededE8"
-                    autoAnimate
-                    particleVariance={0.7}
-                    pulseSpeed={3}
-                    particleShape="capsule"
-                    fieldStrength={10}
-                  />
-                </div>
+                <SignalField items={stats?.recent ?? []} />
               </div></BorderBeam>
 
               <BorderBeam size="md" colorVariant="mono" theme="dark" strength={0.5}><div className="panel-card" style={{ marginTop: 20, padding: 0 }}>

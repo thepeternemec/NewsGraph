@@ -126,20 +126,20 @@ export default function Dashboard() {
               <h2>Items per beat</h2>
               <ResponsiveContainer width="100%" height={320}>
                 <BarChart data={stats?.by_beat ?? []} layout="vertical" margin={{ left: 120 }}>
-                  <CartesianGrid stroke="#1c2540" horizontal={false} />
-                  <XAxis type="number" stroke="#93a0c4" allowDecimals={false} />
+                  <CartesianGrid stroke="#1f1f1f" horizontal={false} />
+                  <XAxis type="number" stroke="#8a8a8a" allowDecimals={false} />
                   <YAxis
                     type="category"
                     dataKey="label"
-                    stroke="#93a0c4"
+                    stroke="#8a8a8a"
                     width={118}
                     tick={{ fontSize: 11 }}
                   />
                   <Tooltip
-                    contentStyle={{ background: "#0e1526", border: "1px solid #1c2540" }}
-                    labelStyle={{ color: "#e8ecff" }}
+                    contentStyle={{ background: "#0d0d0d", border: "1px solid #1f1f1f" }}
+                    labelStyle={{ color: "#f5f5f5" }}
                   />
-                  <Bar dataKey="items" fill="#7f8cff" radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="items" fill="#ffffff" radius={[0, 3, 3, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

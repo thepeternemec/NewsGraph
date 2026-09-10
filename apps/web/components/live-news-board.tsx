@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Marquee from "@/components/ui/marquee/marquee";
+import SpotlightCard from "@/components/ui/spotlight-card/spotlight-card";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
@@ -43,40 +45,50 @@ export default function LiveNewsBoard() {
   }, []);
 
   const recent = stats?.recent ?? [];
-  const tickerItems = recent.length > 0 ? recent : PLACEHOLDER;
+  const ticker = recent.length > 0 ? recent : PLACEHOLDER;
 
   return (
-    <div className="perspective">
-      <div className="ticker-wrap">
-        <div className="ticker">
-          {[...tickerItems, ...tickerItems].map((item, i) => (
-            <span key={i} className="ticker-item">
-              <b>{item.beat_label}</b> · {item.lede}
+    <div>
+      <Marquee
+        speed={70}
+        gap="4rem"
+        pauseOnHover
+        containerClassName="border-y border-border bg-[var(--bg-soft)] py-3"
+      >
+        <div className="flex items-center">
+          {ticker.map((item, i) => (
+            <span key={i} className="whitespace-nowrap text-[13px] text-muted-foreground">
+              <span className="font-semibold text-foreground">{item.beat_label}</span>
+              <span className="mx-3 opacity-40">·</span>
+              {item.lede}
             </span>
           ))}
         </div>
-      </div>
+      </Marquee>
 
-      <div className="news-board" style={{ marginTop: 18 }}>
+      <div className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
         {recent.slice(0, 9).map((item, i) => (
-          <article
+          <SpotlightCard
             key={i}
-            className="news-card"
-            style={{ animationDelay: `${i * 70}ms` }}
+            className="rounded-xl border border-border bg-[var(--panel)] p-4"
           >
-            <span className="tag">{item.beat_label}</span>
-            <p className="lede">{item.lede}</p>
-            <div className="meta">
-              <span>{item.source}</span>
-              <span className="corr">
+            <span className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+              {item.beat_label}
+            </span>
+            <p className="mt-2 text-[13px] leading-relaxed text-foreground">
+              {item.lede}
+            </p>
+            <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span className="truncate">{item.source}</span>
+              <span className="ml-3 shrink-0">
                 {item.corroboration > 0 ? `◈ ${item.corroboration}` : "·"}
               </span>
             </div>
-          </article>
+          </SpotlightCard>
         ))}
       </div>
 
-      <p className="hint" style={{ marginTop: 14, color: "var(--muted)", fontSize: "0.75rem" }}>
+      <p className="mt-4 text-[11px] text-muted-foreground">
         live stream · {stats?.total_items ?? "…"} signals · {stats?.total_events ?? "…"} event
         clusters · max corroboration {stats?.max_corroboration ?? "…"}
       </p>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import SignalField from "@/components/signal-field";
+import Beam from "@/components/beam";
 import { BorderBeam } from "border-beam";
 
 const API_BASE =
@@ -91,7 +92,7 @@ export default function Dashboard() {
 
   return (
     <main className="shell">
-      <header className="app-toolbar">
+      <Beam size="line" strength={0.5} className="beam-box beam-toolbar"><header className="app-toolbar">
         <div className="app-brand">
           <span>PLEIADES</span>
           <i />
@@ -101,10 +102,10 @@ export default function Dashboard() {
           <span>{lastRefresh ? lastRefresh.toLocaleTimeString() : "connecting"}</span>
           <i>·</i> refreshes every 15s
         </div>
-      </header>
+      </header></Beam>
 
       <div className="dash-layout">
-        <aside className="dash-sidebar">
+        <Beam size="sm" strength={0.4} className="beam-box beam-sidebar"><aside className="dash-sidebar">
           <p className="side-label">Views</p>
           <nav className="side-nav" aria-label="Dashboard views">
             {TABS.map((t) => (
@@ -124,7 +125,7 @@ export default function Dashboard() {
           <div className="side-foot">
             <a href="/">← Home</a>
           </div>
-        </aside>
+        </aside></Beam>
 
         <section className="dash-main">
           <div className="context-head" style={{ marginBottom: 32 }}>
@@ -142,26 +143,36 @@ export default function Dashboard() {
           {view === "signals" && (
             <>
               <div className="stat-band">
-                <div>
-                  <b>{stats?.beats ?? "…"}</b>
-                  <span>beats</span>
-                </div>
-                <div>
-                  <b>{stats?.total_items ?? "…"}</b>
-                  <span>signals indexed</span>
-                </div>
-                <div>
-                  <b>{stats?.total_events ?? "…"}</b>
-                  <span>event clusters</span>
-                </div>
-                <div>
-                  <b>{stats?.clustered_items ?? "…"}</b>
-                  <span>clustered items</span>
-                </div>
-                <div>
-                  <b>{stats?.max_corroboration ?? "…"}</b>
-                  <span>max corroboration</span>
-                </div>
+                <Beam size="sm" strength={0.4}>
+                  <div className="stat-cell">
+                    <b>{stats?.beats ?? "…"}</b>
+                    <span>beats</span>
+                  </div>
+                </Beam>
+                <Beam size="sm" strength={0.4}>
+                  <div className="stat-cell">
+                    <b>{stats?.total_items ?? "…"}</b>
+                    <span>signals indexed</span>
+                  </div>
+                </Beam>
+                <Beam size="sm" strength={0.4}>
+                  <div className="stat-cell">
+                    <b>{stats?.total_events ?? "…"}</b>
+                    <span>event clusters</span>
+                  </div>
+                </Beam>
+                <Beam size="sm" strength={0.4}>
+                  <div className="stat-cell">
+                    <b>{stats?.clustered_items ?? "…"}</b>
+                    <span>clustered items</span>
+                  </div>
+                </Beam>
+                <Beam size="sm" strength={0.4}>
+                  <div className="stat-cell">
+                    <b>{stats?.max_corroboration ?? "…"}</b>
+                    <span>max corroboration</span>
+                  </div>
+                </Beam>
               </div>
 
               <BorderBeam size="md" colorVariant="mono" theme="dark" strength={0.5}><div className="panel-card" style={{ marginTop: 20 }}>

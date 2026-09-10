@@ -16,6 +16,7 @@ import Magnetic from "@/components/ui/magnetic-button/magnetic-button";
 import ExpandingAction from "@/components/ui/expanding-action/expanding-action";
 import FluidTabs from "@/components/ui/fluid-tabs/fluid-tabs";
 import LiveNewsBoard, { type Stats } from "@/components/live-news-board";
+import Beam from "@/components/beam";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
@@ -72,7 +73,7 @@ export default function Home() {
 
   return (
     <main className="shell" id="top">
-      <header className="app-toolbar">
+      <Beam size="line" strength={0.5} className="beam-box beam-toolbar"><header className="app-toolbar">
         <div className="app-brand">
           <span>PLEIADES</span>
           <i />
@@ -86,7 +87,7 @@ export default function Home() {
           <a className="toolbar-action" href="#method">Method</a>
           <a className="toolbar-action" href="/dashboard">Dashboard</a>
         </div>
-      </header>
+      </header></Beam>
 
       <section className="unified-hero">
         <div className="app-intro">
@@ -116,18 +117,24 @@ export default function Home() {
           </div>
 
           <div className="app-proof">
-            <div>
-              <b>{stats?.total_items ?? "…"}</b>
-              <span>signals indexed</span>
-            </div>
-            <div>
-              <b>{stats?.total_events ?? "…"}</b>
-              <span>event clusters</span>
-            </div>
-            <div>
-              <b>{stats?.max_corroboration ?? "…"}</b>
-              <span>max corroboration</span>
-            </div>
+            <Beam size="sm" strength={0.4}>
+              <div className="proof-cell">
+                <b>{stats?.total_items ?? "…"}</b>
+                <span>signals indexed</span>
+              </div>
+            </Beam>
+            <Beam size="sm" strength={0.4}>
+              <div className="proof-cell">
+                <b>{stats?.total_events ?? "…"}</b>
+                <span>event clusters</span>
+              </div>
+            </Beam>
+            <Beam size="sm" strength={0.4}>
+              <div className="proof-cell">
+                <b>{stats?.max_corroboration ?? "…"}</b>
+                <span>max corroboration</span>
+              </div>
+            </Beam>
           </div>
         </div>
 
@@ -147,11 +154,11 @@ export default function Home() {
         </div>
         <div className="outcome-grid">
           {PIPELINE.map((s) => (
-            <div key={s.n} className="outcome-card">
+            <Beam key={s.n} size="sm" strength={0.45}><div className="outcome-card">
               <span>{s.n}</span>
               <h3>{s.title}</h3>
               <p>{s.body}</p>
-            </div>
+            </div></Beam>
           ))}
         </div>
       </section>
@@ -169,11 +176,11 @@ export default function Home() {
         </div>
         <div className="skill-grid">
           {SKILLS.map(({ icon: Icon, label, desc }) => (
-            <div key={label} className="skill-cell">
+            <Beam key={label} size="sm" strength={0.45}><div className="skill-cell">
               <Icon size={15} strokeWidth={1.75} className="ic" />
               <h3>{label}</h3>
               <p>{desc}</p>
-            </div>
+            </div></Beam>
           ))}
         </div>
       </section>
@@ -202,7 +209,7 @@ export default function Home() {
       </section>
 
       <section className="open-source-band">
-        <div className="open-source-inner">
+        <Beam size="md" strength={0.6}><div className="open-source-inner">
           <div>
             <p className="kicker" style={{ margin: 0 }}>Built in the open</p>
             <h2>The news infrastructure for the agent era.</h2>
@@ -216,7 +223,7 @@ export default function Home() {
               See it live <ArrowRight size={13} />
             </a>
           </Magnetic>
-        </div>
+        </div></Beam>
       </section>
 
       <footer className="unified-footer">

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import FluidTabs from "@/components/ui/fluid-tabs/fluid-tabs";
 import Antigravity from "@/components/antigravity";
 
 const API_BASE =
@@ -49,7 +48,7 @@ interface Stats {
 
 type View = "signals" | "clusters" | "corroboration";
 
-const TABS = [
+const TABS: Array<{ value: View; title: string }> = [
   { value: "signals", title: "Signals" },
   { value: "clusters", title: "Clusters" },
   { value: "corroboration", title: "Corroboration" },
@@ -83,6 +82,12 @@ export default function Dashboard() {
     };
   }, []);
 
+  const counts: Record<View, number | undefined> = {
+    signals: stats?.total_items,
+    clusters: stats?.total_events,
+    corroboration: stats?.clustered_items,
+  };
+
   return (
     <main className="shell">
       <header className="app-toolbar">
@@ -92,34 +97,47 @@ export default function Dashboard() {
           <small>live dashboard</small>
         </div>
         <div className="toolbar-flow">
-          <span>live</span>
-          <i>·</i> signals <i>·</i> clusters <i>·</i> corroboration
-        </div>
-        <div className="app-toolbar-actions">
-          <a className="toolbar-action" href="/">← Home</a>
+          <span>{lastRefresh ? lastRefresh.toLocaleTimeString() : "connecting"}</span>
+          <i>·</i> refreshes every 15s
         </div>
       </header>
 
-      <section className="unified-context" style={{ paddingTop: 64 }}>
-        <div className="context-head">
-          <div>
-            <p className="kicker">Live dashboard</p>
-            <h2>News terminal, live.</h2>
+      <div className="dash-layout">
+        <aside className="dash-sidebar">
+          <p className="side-label">Views</p>
+          <nav className="side-nav" aria-label="Dashboard views">
+            {TABS.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                className={`side-item${view === t.value ? " active" : ""}`}
+                onClick={() => setView(t.value)}
+                aria-current={view === t.value ? "page" : undefined}
+              >
+                <span className="mark" aria-hidden="true" />
+                {t.title}
+                <span className="side-count">{counts[t.value] ?? "…"}</span>
+              </button>
+            ))}
+          </nav>
+          <div className="side-foot">
+            <a href="/">← Home</a>
           </div>
-          <p>
-            {lastRefresh
-              ? `Updated ${lastRefresh.toLocaleTimeString()} · refreshes every 15s`
-              : "Connecting…"}
-          </p>
-        </div>
+        </aside>
 
-        <FluidTabs
-          value={view}
-          onValueChange={(v) => setView(v as View)}
-          tabs={TABS}
-        />
+        <section className="dash-main">
+          <div className="context-head" style={{ marginBottom: 32 }}>
+            <div>
+              <p className="kicker">Live dashboard</p>
+              <h2>{TABS.find((t) => t.value === view)?.title}</h2>
+            </div>
+            <p>
+              {lastRefresh
+                ? `Updated ${lastRefresh.toLocaleTimeString()} · refreshes every 15s`
+                : "Connecting…"}
+            </p>
+          </div>
 
-        <div style={{ marginTop: 28 }}>
           {view === "signals" && (
             <>
               <div className="stat-band">
@@ -252,8 +270,8 @@ export default function Dashboard() {
               </div>
             </div>
           )}
-        </div>
-      </section>
+        </section>
+      </div>
 
       <footer className="unified-footer">
         <div className="unified-footer-bottom">

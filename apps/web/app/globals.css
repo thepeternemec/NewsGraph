@@ -659,3 +659,77 @@ h1 {
 .panel-card { border: 1px solid #2d2d2d; border-radius: 13px; background: #0c0c0c; padding: 24px; }
 .panel-card h2 { margin: 0 0 18px; font-size: 14px; font-weight: 500; letter-spacing: -.03em; color: #ededE8; }
 @media (max-width: 900px) { .stat-band { grid-template-columns: repeat(2,1fr); } }
+
+/* ═══════════ dashboard sidebar layout ═══════════ */
+.dash-layout {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  align-items: start;
+}
+.dash-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 44px 24px 44px 0;
+  border-right: 1px solid #1f1f1f;
+  position: sticky;
+  top: 0;
+  min-height: calc(100vh - 84px);
+}
+.dash-main { min-width: 0; padding: 44px 0 96px 40px; }
+
+.side-label {
+  margin: 0 0 12px;
+  color: #767671;
+  font: 600 9px var(--font-mono), monospace;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+}
+.side-nav { display: flex; flex-direction: column; gap: 2px; }
+.side-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #a2a29d;
+  font-family: var(--font-sans), Inter, sans-serif;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background .2s, color .2s;
+}
+.side-item:hover { background: #141414; color: #ededE8; }
+.side-item.active { background: #141414; color: #ededE8; }
+.side-item .mark {
+  width: 6px; height: 6px; border-radius: 50%;
+  border: 1px solid #7f7f7a; flex: none;
+  transition: background .2s, border-color .2s;
+}
+.side-item.active .mark { background: #ededE8; border-color: #ededE8; }
+.side-count {
+  margin-left: auto;
+  color: #767671;
+  font: 9px var(--font-mono), monospace;
+}
+.side-foot { margin-top: auto; padding-top: 20px; border-top: 1px solid #1f1f1f; }
+.side-foot a { color: #a2a29d; font-size: 12px; text-decoration: none; }
+.side-foot a:hover { color: #ededE8; }
+
+@media (max-width: 900px) {
+  .dash-layout { grid-template-columns: 1fr; }
+  .dash-sidebar {
+    position: static;
+    min-height: 0;
+    border-right: 0;
+    border-bottom: 1px solid #1f1f1f;
+    padding: 20px 0;
+  }
+  .side-nav { flex-direction: row; gap: 6px; flex-wrap: wrap; }
+  .side-item { width: auto; padding: 8px 12px; }
+  .side-foot { margin-top: 12px; }
+  .dash-main { padding: 32px 0 72px; }
+}

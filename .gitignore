@@ -18,3 +18,5 @@ out/
 
 # vercel
 .vercel/
+.vercel
+.env*

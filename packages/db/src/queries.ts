@@ -127,7 +127,13 @@ export async function insertWebhook(
   db: SupabaseClient,
   row: { url: string; beat_ids: string[]; hmac_secret: string },
 ): Promise<WebhookRow> {
-  const { data, error } = await db.from("webhooks").insert(row).select().single();
+  // Single-operator mode until workspaces land (Phase 6): all webhooks are
+  // owned by the "operator" principal, satisfying the NOT NULL agent_id.
+  const { data, error } = await db
+    .from("webhooks")
+    .insert({ ...row, agent_id: "operator" })
+    .select()
+    .single();
   if (error) throw new Error(`insertWebhook failed: ${error.message}`);
   return data as WebhookRow;
 }

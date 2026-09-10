@@ -1,7 +1,6 @@
 "use client";
 
 import Marquee from "@/components/ui/marquee/marquee";
-import { BorderBeam } from "border-beam";
 
 export interface RecentItem {
   beat_label: string;
@@ -23,8 +22,7 @@ export default function LiveNewsBoard({ stats }: { stats: Stats | null }) {
   const ticker = recent.length > 0 ? recent : PLACEHOLDER;
 
   return (
-    <BorderBeam size="md" colorVariant="mono" theme="dark" strength={0.6}>
-      <div className="scanner">
+    <div className="scanner">
       <div className="windowbar">
         <span className="dots" aria-hidden="true">
           <span className="dot" />
@@ -67,8 +65,7 @@ export default function LiveNewsBoard({ stats }: { stats: Stats | null }) {
           </div>
         )}
         </div>
-      </div>
-    </BorderBeam>
+    </div>
   );
 }
 

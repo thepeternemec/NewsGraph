@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import SignalField from "@/components/signal-field";
 import Beam from "@/components/beam";
-import { BorderBeam } from "border-beam";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
@@ -105,7 +104,7 @@ export default function Dashboard() {
       </header></Beam>
 
       <div className="dash-layout">
-        <Beam size="sm" strength={0.4} className="beam-box beam-sidebar"><aside className="dash-sidebar">
+        <aside className="dash-sidebar">
           <p className="side-label">Views</p>
           <nav className="side-nav" aria-label="Dashboard views">
             {TABS.map((t) => (
@@ -125,7 +124,7 @@ export default function Dashboard() {
           <div className="side-foot">
             <a href="/">← Home</a>
           </div>
-        </aside></Beam>
+        </aside>
 
         <section className="dash-main">
           <div className="context-head" style={{ marginBottom: 32 }}>
@@ -143,44 +142,44 @@ export default function Dashboard() {
           {view === "signals" && (
             <>
               <div className="stat-band">
-                <Beam size="sm" strength={0.4}>
+                
                   <div className="stat-cell">
                     <b>{stats?.beats ?? "…"}</b>
                     <span>beats</span>
                   </div>
-                </Beam>
-                <Beam size="sm" strength={0.4}>
+                
+                
                   <div className="stat-cell">
                     <b>{stats?.total_items ?? "…"}</b>
                     <span>signals indexed</span>
                   </div>
-                </Beam>
-                <Beam size="sm" strength={0.4}>
+                
+                
                   <div className="stat-cell">
                     <b>{stats?.total_events ?? "…"}</b>
                     <span>event clusters</span>
                   </div>
-                </Beam>
-                <Beam size="sm" strength={0.4}>
+                
+                
                   <div className="stat-cell">
                     <b>{stats?.clustered_items ?? "…"}</b>
                     <span>clustered items</span>
                   </div>
-                </Beam>
-                <Beam size="sm" strength={0.4}>
+                
+                
                   <div className="stat-cell">
                     <b>{stats?.max_corroboration ?? "…"}</b>
                     <span>max corroboration</span>
                   </div>
-                </Beam>
+                
               </div>
 
-              <BorderBeam size="md" colorVariant="mono" theme="dark" strength={0.5}><div className="panel-card" style={{ marginTop: 20 }}>
+              <div className="panel-card" style={{ marginTop: 20 }}>
                 <h2>Signal field</h2>
                 <SignalField items={stats?.recent ?? []} />
-              </div></BorderBeam>
+              </div>
 
-              <BorderBeam size="md" colorVariant="mono" theme="dark" strength={0.5}><div className="panel-card" style={{ marginTop: 20, padding: 0 }}>
+              <div className="panel-card" style={{ marginTop: 20, padding: 0 }}>
                 <div className="windowbar" style={{ padding: "18px 24px" }}>
                   <span className="dots" aria-hidden="true">
                     <span className="dot" />
@@ -203,12 +202,12 @@ export default function Dashboard() {
                     </div>
                   ))}
                 </div>
-              </div></BorderBeam>
+              </div>
             </>
           )}
 
           {view === "clusters" && (
-            <BorderBeam size="md" colorVariant="mono" theme="dark" strength={0.5}><div className="panel-card" style={{ padding: 0 }}>
+            <div className="panel-card" style={{ padding: 0 }}>
               <div className="windowbar" style={{ padding: "18px 24px" }}>
                 <span className="dots" aria-hidden="true">
                   <span className="dot" />
@@ -233,11 +232,11 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
-            </div></BorderBeam>
+            </div>
           )}
 
           {view === "corroboration" && (
-            <BorderBeam size="md" colorVariant="mono" theme="dark" strength={0.5}><div className="panel-card" style={{ padding: 0 }}>
+            <div className="panel-card" style={{ padding: 0 }}>
               <div className="windowbar" style={{ padding: "18px 24px" }}>
                 <span className="dots" aria-hidden="true">
                   <span className="dot" />
@@ -264,7 +263,7 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
-            </div></BorderBeam>
+            </div>
           )}
         </section>
       </div>

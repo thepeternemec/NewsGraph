@@ -117,24 +117,24 @@ export default function Home() {
           </div>
 
           <div className="app-proof">
-            <Beam size="sm" strength={0.4}>
+            
               <div className="proof-cell">
                 <b>{stats?.total_items ?? "…"}</b>
                 <span>signals indexed</span>
               </div>
-            </Beam>
-            <Beam size="sm" strength={0.4}>
+            
+            
               <div className="proof-cell">
                 <b>{stats?.total_events ?? "…"}</b>
                 <span>event clusters</span>
               </div>
-            </Beam>
-            <Beam size="sm" strength={0.4}>
+            
+            
               <div className="proof-cell">
                 <b>{stats?.max_corroboration ?? "…"}</b>
                 <span>max corroboration</span>
               </div>
-            </Beam>
+            
           </div>
         </div>
 
@@ -154,11 +154,11 @@ export default function Home() {
         </div>
         <div className="outcome-grid">
           {PIPELINE.map((s) => (
-            <Beam key={s.n} size="sm" strength={0.45}><div className="outcome-card">
+            <div key={s.n} className="outcome-card">
               <span>{s.n}</span>
               <h3>{s.title}</h3>
               <p>{s.body}</p>
-            </div></Beam>
+            </div>
           ))}
         </div>
       </section>
@@ -176,11 +176,11 @@ export default function Home() {
         </div>
         <div className="skill-grid">
           {SKILLS.map(({ icon: Icon, label, desc }) => (
-            <Beam key={label} size="sm" strength={0.45}><div className="skill-cell">
+            <div key={label} className="skill-cell">
               <Icon size={15} strokeWidth={1.75} className="ic" />
               <h3>{label}</h3>
               <p>{desc}</p>
-            </div></Beam>
+            </div>
           ))}
         </div>
       </section>
@@ -209,7 +209,7 @@ export default function Home() {
       </section>
 
       <section className="open-source-band">
-        <Beam size="md" strength={0.6}><div className="open-source-inner">
+        <div className="open-source-inner">
           <div>
             <p className="kicker" style={{ margin: 0 }}>Built in the open</p>
             <h2>The news infrastructure for the agent era.</h2>
@@ -223,7 +223,7 @@ export default function Home() {
               See it live <ArrowRight size={13} />
             </a>
           </Magnetic>
-        </div></Beam>
+        </div>
       </section>
 
       <footer className="unified-footer">

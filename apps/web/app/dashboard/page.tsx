@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Antigravity from "@/components/antigravity";
+import { BorderBeam } from "border-beam";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
@@ -163,7 +164,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="panel-card" style={{ marginTop: 20 }}>
+              <BorderBeam size="md" colorVariant="mono" theme="dark" strength={0.5}><div className="panel-card" style={{ marginTop: 20 }}>
                 <h2>Signal field</h2>
                 <div style={{ width: "100%", height: 400, position: "relative" }}>
                   <Antigravity
@@ -182,9 +183,9 @@ export default function Dashboard() {
                     fieldStrength={10}
                   />
                 </div>
-              </div>
+              </div></BorderBeam>
 
-              <div className="panel-card" style={{ marginTop: 20, padding: 0 }}>
+              <BorderBeam size="md" colorVariant="mono" theme="dark" strength={0.5}><div className="panel-card" style={{ marginTop: 20, padding: 0 }}>
                 <div className="windowbar" style={{ padding: "18px 24px" }}>
                   <span className="dots" aria-hidden="true">
                     <span className="dot" />
@@ -207,12 +208,12 @@ export default function Dashboard() {
                     </div>
                   ))}
                 </div>
-              </div>
+              </div></BorderBeam>
             </>
           )}
 
           {view === "clusters" && (
-            <div className="panel-card" style={{ padding: 0 }}>
+            <BorderBeam size="md" colorVariant="mono" theme="dark" strength={0.5}><div className="panel-card" style={{ padding: 0 }}>
               <div className="windowbar" style={{ padding: "18px 24px" }}>
                 <span className="dots" aria-hidden="true">
                   <span className="dot" />
@@ -237,11 +238,11 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
-            </div>
+            </div></BorderBeam>
           )}
 
           {view === "corroboration" && (
-            <div className="panel-card" style={{ padding: 0 }}>
+            <BorderBeam size="md" colorVariant="mono" theme="dark" strength={0.5}><div className="panel-card" style={{ padding: 0 }}>
               <div className="windowbar" style={{ padding: "18px 24px" }}>
                 <span className="dots" aria-hidden="true">
                   <span className="dot" />
@@ -268,7 +269,7 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
-            </div>
+            </div></BorderBeam>
           )}
         </section>
       </div>

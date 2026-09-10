@@ -733,3 +733,43 @@ h1 {
   .side-foot { margin-top: 12px; }
   .dash-main { padding: 32px 0 72px; }
 }
+
+/* ═══════════ alignment pass — one margin system ═══════════
+   Every box shares: 24px inner padding, 14px vertical row padding,
+   and one two-column grid (same ratio + gap) so column lines align. */
+
+:root { --pad: 24px; --row: 14px; --grid-gap: 64px; }
+
+/* one grid for every split section → identical column lines */
+.unified-hero,
+.context-head {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--grid-gap);
+}
+
+/* one inner padding for every box */
+.panel-card { padding: var(--pad); border-radius: 14px; border-color: #2d2d2d; background: linear-gradient(160deg, #101010, #0b0b0b); }
+.outcome-card { padding: var(--pad); }
+.skill-cell { padding: var(--pad); }
+.app-proof > div { padding: 16px var(--pad); }
+.stat-band > div { padding: 18px var(--pad); }
+.open-source-inner { padding: 32px; }
+
+/* rows + window bars share the same left/right margin as box padding */
+.feed-line { padding: var(--row) var(--pad); align-items: baseline; }
+.windowbar { padding: 18px var(--pad); }
+.terminal-feed { margin-top: 0; }
+
+/* panel headings sit on the same line as row content */
+.panel-card > h2 { margin: 0 0 18px; }
+
+/* consistent text column: nothing exceeds the grid, no ragged right edges */
+.panel-card, .outcome-card, .skill-cell, .app-proof > div, .feed-line { min-width: 0; }
+.feed-line .txt { overflow-wrap: anywhere; }
+.app-intro h1 { max-width: none; }
+.app-intro p, .context-head p { max-width: none; }
+
+@media (max-width: 980px) {
+  :root { --grid-gap: 32px; }
+  .unified-hero, .context-head { grid-template-columns: minmax(0, 1fr); }
+}

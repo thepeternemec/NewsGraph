@@ -170,3 +170,137 @@ export async function activeWebhooksForBeat(
   if (error) throw new Error(`activeWebhooksForBeat failed: ${error.message}`);
   return (data ?? []) as WebhookRow[];
 }
+
+// ── Dashboard stats (Phase 0 demo surface) ───────────────────────────
+
+export interface DashboardStats {
+  beats: number;
+  total_items: number;
+  total_events: number;
+  clustered_items: number;
+  max_corroboration: number;
+  last_ingestion_at: string | null;
+  by_beat: Array<{
+    beat_id: string;
+    label: string;
+    items: number;
+    events: number;
+    corroboration_max: number;
+    last_computed_at: string | null;
+  }>;
+  recent: Array<{
+    beat_label: string;
+    lede: string;
+    source: string;
+    url: string;
+    event_id: string | null;
+    corroboration: number;
+    published_at: string;
+  }>;
+  timeline: Array<{ day: string; items: number; events: number }>;
+}
+
+/** Aggregate the pipeline's state for the dashboard. Data is small enough
+ *  to pull and aggregate in-process (20 beats, ~hundreds of items/events). */
+export async function getDashboardStats(db: SupabaseClient): Promise<DashboardStats> {
+  const [beatsRes, packsRes, itemsRes, eventsRes] = await Promise.all([
+    db.from("beats").select("beat_id, label"),
+    db.from("packs").select("pack_id, beat_id, computed_at, item_count"),
+    db.from("pack_items")
+      .select("pack_id, lede, url, source, published_at, event_id, corroboration")
+      .order("published_at", { ascending: false })
+      .limit(1000),
+    db.from("events").select("beat_id, source_count"),
+  ]);
+
+  const beats = (beatsRes.data ?? []) as Array<{ beat_id: string; label: string }>;
+  const packs = (packsRes.data ?? []) as Array<{
+    pack_id: string; beat_id: string; computed_at: string; item_count: number;
+  }>;
+  const items = (itemsRes.data ?? []) as Array<{
+    pack_id: string; lede: string; url: string; source: string;
+    published_at: string; event_id: string | null; corroboration: number;
+  }>;
+  const events = (eventsRes.data ?? []) as Array<{ beat_id: string; source_count: number }>;
+
+  const beatByPack = new Map(packs.map((p) => [p.pack_id, p.beat_id]));
+  const labelById = new Map(beats.map((b) => [b.beat_id, b.label]));
+  const computedByBeat = new Map<string, string | null>();
+  for (const p of packs) {
+    const prev = computedByBeat.get(p.beat_id);
+    if (!prev || p.computed_at > prev) computedByBeat.set(p.beat_id, p.computed_at);
+  }
+
+  const itemsByBeat = new Map<string, number>();
+  const corrMaxByBeat = new Map<string, number>();
+  const eventsByBeat = new Map<string, number>();
+  for (const b of beats) {
+    itemsByBeat.set(b.beat_id, 0);
+    corrMaxByBeat.set(b.beat_id, 0);
+    eventsByBeat.set(b.beat_id, 0);
+  }
+  let clustered = 0;
+  let maxCorr = 0;
+  for (const it of items) {
+    const beatId = beatByPack.get(it.pack_id);
+    if (beatId) itemsByBeat.set(beatId, (itemsByBeat.get(beatId) ?? 0) + 1);
+    if (it.event_id) clustered += 1;
+    if (it.corroboration > 0) {
+      maxCorr = Math.max(maxCorr, it.corroboration);
+      if (beatId) corrMaxByBeat.set(beatId, Math.max(corrMaxByBeat.get(beatId) ?? 0, it.corroboration));
+    }
+  }
+  for (const ev of events) {
+    eventsByBeat.set(ev.beat_id, (eventsByBeat.get(ev.beat_id) ?? 0) + 1);
+  }
+
+  const by_beat = beats
+    .map((b) => ({
+      beat_id: b.beat_id,
+      label: b.label,
+      items: itemsByBeat.get(b.beat_id) ?? 0,
+      events: eventsByBeat.get(b.beat_id) ?? 0,
+      corroboration_max: corrMaxByBeat.get(b.beat_id) ?? 0,
+      last_computed_at: computedByBeat.get(b.beat_id) ?? null,
+    }))
+    .filter((b) => b.items > 0 || b.events > 0)
+    .sort((a, b) => b.items - a.items);
+
+  const recent = items.slice(0, 25).map((it) => ({
+    beat_label: labelById.get(beatByPack.get(it.pack_id) ?? "") ?? "unknown",
+    lede: it.lede,
+    source: it.source,
+    url: it.url,
+    event_id: it.event_id,
+    corroboration: it.corroboration,
+    published_at: it.published_at,
+  }));
+
+  const dayMap = new Map<string, { items: number; events: number }>();
+  for (const it of items) {
+    const day = (it.published_at ?? "").slice(0, 10);
+    if (!day) continue;
+    const cur = dayMap.get(day) ?? { items: 0, events: 0 };
+    cur.items += 1;
+    dayMap.set(day, cur);
+  }
+  const timeline = [...dayMap.entries()]
+    .map(([day, v]) => ({ day, items: v.items, events: v.events }))
+    .sort((a, b) => a.day.localeCompare(b.day));
+
+  const lastIngestion = computedByBeat.size > 0
+    ? [...computedByBeat.values()].filter(Boolean).sort().pop() ?? null
+    : null;
+
+  return {
+    beats: beats.length,
+    total_items: items.length,
+    total_events: events.length,
+    clustered_items: clustered,
+    max_corroboration: maxCorr,
+    last_ingestion_at: lastIngestion,
+    by_beat,
+    recent,
+    timeline,
+  };
+}

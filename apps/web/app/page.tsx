@@ -49,6 +49,9 @@ export default function Home() {
         <blockquote className="quote">
           “Markets move on news in seconds. Pleiades ensures you never miss the signal.”
         </blockquote>
+        <p className="cta">
+          <a className="cta-btn" href="/dashboard">View live dashboard →</a>
+        </p>
       </section>
 
       <section className="grid" aria-label="Who it serves">

@@ -14,6 +14,7 @@ import {
 } from "../contracts/index.ts";
 import {
   createSupabaseClient,
+  getDashboardStats,
   hasSupabaseEnv,
   insertWebhook,
   listWebhooks,
@@ -30,6 +31,17 @@ export const SERVICE = {
 } as const;
 
 const app = new Hono();
+
+// ── CORS (public API; consumed by the dashboard and agents) ─────────
+app.use("*", async (c, next) => {
+  c.header("Access-Control-Allow-Origin", "*");
+  c.header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+  c.header("Access-Control-Allow-Headers", "Content-Type, X-PAYMENT, Authorization, Idempotency-Key");
+  if (c.req.method === "OPTIONS") {
+    return new Response(null, { status: 204 });
+  }
+  await next();
+});
 
 // ── Service descriptor ──────────────────────────────────────────────
 app.get("/", (c) =>
@@ -62,6 +74,19 @@ app.get("/v1/catalog", (c) => {
     .map((b) => BeatSchema.parse(b))
     .sort((a, b) => a.label.localeCompare(b.label));
   return c.json({ beats });
+});
+
+// ── Dashboard stats (public; drives the demo UI) ────────────────────
+app.get("/v1/stats", async (c) => {
+  if (!hasSupabaseEnv()) return errorByCode(c, "database_not_configured");
+  const db = createSupabaseClient();
+  if (!db) return errorByCode(c, "database_not_configured");
+  try {
+    return c.json(await getDashboardStats(db));
+  } catch (error) {
+    console.error("stats failed:", error);
+    return errorByCode(c, "internal_error");
+  }
 });
 
 // ── Agent tool definitions ──────────────────────────────────────────

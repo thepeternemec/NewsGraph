@@ -14,8 +14,11 @@ Pleiades combines real-time news discovery with intelligent curation at scale. I
 
 ## Platform (decided)
 
-**Supabase is the backend platform** (Postgres, Edge Functions, Realtime, Auth, Storage).
-**Vercel hosts only the website/docs.** See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) §6.
+**Supabase is the backend platform** — Postgres, Edge Functions (API + ingestion
+cron), Realtime, Auth, Storage. **Vercel hosts only the website/docs.**
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) §6.
+
+**Live API:** `https://dnnoypytdfvsdenykooq.supabase.co/functions/v1/api`
 
 ## Repository layout
 

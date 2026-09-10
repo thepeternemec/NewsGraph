@@ -6,9 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "build": "tsc -p tsconfig.json",
-    "build:bundle": "esbuild src/vercel.ts --bundle --platform=node --target=node20 --format=esm --outfile=dist/vercel.js",
-    "build:vercel": "npm run build -w @pleiades/contracts && npm run build -w @pleiades/db && npm run build -w @pleiades/sdk && npm run build:bundle"
+    "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",
@@ -19,7 +17,6 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
-    "esbuild": "0.28.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }

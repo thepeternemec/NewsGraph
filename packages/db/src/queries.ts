@@ -197,6 +197,19 @@ export interface DashboardStats {
     corroboration: number;
     published_at: string;
   }>;
+  clusters: Array<{
+    event_id: string;
+    title: string | null;
+    source_count: number;
+    beat_label: string;
+  }>;
+  top_corroborated: Array<{
+    beat_label: string;
+    lede: string;
+    source: string;
+    url: string;
+    corroboration: number;
+  }>;
   timeline: Array<{ day: string; items: number; events: number }>;
 }
 
@@ -210,7 +223,7 @@ export async function getDashboardStats(db: SupabaseClient): Promise<DashboardSt
       .select("pack_id, lede, url, source, published_at, event_id, corroboration")
       .order("published_at", { ascending: false })
       .limit(1000),
-    db.from("events").select("beat_id, source_count"),
+    db.from("events").select("event_id, beat_id, title, source_count"),
   ]);
 
   const beats = (beatsRes.data ?? []) as Array<{ beat_id: string; label: string }>;
@@ -221,7 +234,9 @@ export async function getDashboardStats(db: SupabaseClient): Promise<DashboardSt
     pack_id: string; lede: string; url: string; source: string;
     published_at: string; event_id: string | null; corroboration: number;
   }>;
-  const events = (eventsRes.data ?? []) as Array<{ beat_id: string; source_count: number }>;
+  const events = (eventsRes.data ?? []) as Array<{
+    event_id: string; beat_id: string; title: string | null; source_count: number;
+  }>;
 
   const beatByPack = new Map(packs.map((p) => [p.pack_id, p.beat_id]));
   const labelById = new Map(beats.map((b) => [b.beat_id, b.label]));
@@ -276,6 +291,28 @@ export async function getDashboardStats(db: SupabaseClient): Promise<DashboardSt
     published_at: it.published_at,
   }));
 
+  const clusters = events
+    .map((ev) => ({
+      event_id: ev.event_id,
+      title: ev.title,
+      source_count: ev.source_count,
+      beat_label: labelById.get(ev.beat_id) ?? "unknown",
+    }))
+    .sort((a, b) => b.source_count - a.source_count)
+    .slice(0, 30);
+
+  const top_corroborated = items
+    .filter((it) => it.corroboration > 0)
+    .sort((a, b) => b.corroboration - a.corroboration)
+    .slice(0, 20)
+    .map((it) => ({
+      beat_label: labelById.get(beatByPack.get(it.pack_id) ?? "") ?? "unknown",
+      lede: it.lede,
+      source: it.source,
+      url: it.url,
+      corroboration: it.corroboration,
+    }));
+
   const dayMap = new Map<string, { items: number; events: number }>();
   for (const it of items) {
     const day = (it.published_at ?? "").slice(0, 10);
@@ -301,6 +338,8 @@ export async function getDashboardStats(db: SupabaseClient): Promise<DashboardSt
     last_ingestion_at: lastIngestion,
     by_beat,
     recent,
+    clusters,
+    top_corroborated,
     timeline,
   };
 }

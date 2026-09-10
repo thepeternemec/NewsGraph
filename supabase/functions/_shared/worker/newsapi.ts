@@ -95,9 +95,20 @@ export function eventTitle(event: ProviderEvent): string | undefined {
 
 export interface GetArticlesParams {
   apiKey: string;
-  /** Wikipedia concept URIs, e.g. http://en.wikipedia.org/wiki/Nvidia */
+  /** Primary filter: Wikipedia concept URIs, e.g. http://en.wikipedia.org/wiki/Nvidia. */
   conceptUri?: string[];
-  keywords?: string[];
+  /** Secondary filter: exact-phrase keywords. Comma-separate for multi-term. */
+  keyword?: string[];
+  /** AND/OR logic for multiple keywords. */
+  keywordOper?: "and" | "or";
+  /** newsapi.ai category URIs (resolve via suggest(type:"categories")). */
+  categoryUri?: string[];
+  /** News source URIs (resolve via suggest(type:"sources")). */
+  sourceUri?: string[];
+  /** Filter by where sources are based (resolve via suggest(type:"locations")). */
+  sourceLocationUri?: string[];
+  /** Locations mentioned in content. */
+  locationUri?: string[];
   /** ISO 639-2/3 language codes, e.g. ["eng", "deu"] */
   lang?: string[];
   /** YYYY-MM-DD */
@@ -126,7 +137,12 @@ export class NewsApiClient {
     const body = {
       apiKey: this.apiKey,
       conceptUri: params.conceptUri,
-      keyword: params.keywords,
+      keyword: params.keyword,
+      keywordOper: params.keywordOper,
+      categoryUri: params.categoryUri,
+      sourceUri: params.sourceUri,
+      sourceLocationUri: params.sourceLocationUri,
+      locationUri: params.locationUri,
       lang: params.lang,
       dateStart: params.dateStart,
       dateEnd: params.dateEnd,
@@ -184,6 +200,64 @@ export class NewsApiClient {
       );
     }
 
+    const parsed = ProviderEventsResponseSchema.parse(await response.json());
+    return parsed.events.results;
+  }
+
+  /**
+   * Articles from a pre-configured newsapi.ai Topic Page — the curated topic
+   * profile that replaces hand-coded concept URIs (the MCP server's
+   * get_topic_page_articles path).
+   */
+  async getTopicPageArticles(params: {
+    uri: string;
+    articlesCount?: number;
+    articlesSortBy?: "date" | "rel" | "sourceImportance" | "socialScore";
+  }): Promise<ProviderArticle[]> {
+    const body = {
+      apiKey: this.apiKey,
+      uri: params.uri,
+      resultType: "articles",
+      articleBodyLen: 300,
+      articlesCount: params.articlesCount ?? 100,
+      articlesSortBy: params.articlesSortBy ?? "date",
+      includeArticleEventUri: true,
+    };
+
+    const response = await this.fetchImpl(`${this.baseUrl}/article/getArticlesForTopicPage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      throw new Error(
+        `newsapi.ai getArticlesForTopicPage failed: HTTP ${response.status} ${await response.text()}`,
+      );
+    }
+    const parsed = ProviderArticlesResponseSchema.parse(await response.json());
+    return parsed.articles.results;
+  }
+
+  /** Event clusters for a pre-configured newsapi.ai Topic Page. */
+  async getTopicPageEvents(params: { uri: string; eventsCount?: number }): Promise<ProviderEvent[]> {
+    const body = {
+      apiKey: this.apiKey,
+      uri: params.uri,
+      resultType: "events",
+      eventsCount: params.eventsCount ?? 100,
+      includeArticleUris: true,
+    };
+
+    const response = await this.fetchImpl(`${this.baseUrl}/event/getEventsForTopicPage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      throw new Error(
+        `newsapi.ai getEventsForTopicPage failed: HTTP ${response.status} ${await response.text()}`,
+      );
+    }
     const parsed = ProviderEventsResponseSchema.parse(await response.json());
     return parsed.events.results;
   }

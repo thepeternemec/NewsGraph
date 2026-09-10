@@ -26,21 +26,27 @@ async function runCycle(beats = SEED_BEATS): Promise<void> {
 
   for (const beat of beats) {
     try {
-      const [articles, events] = await Promise.all([
-        client.getArticles({
-          apiKey,
-          conceptUri: beat.concept_uris,
-          lang: beat.languages,
-          dateStart: toProviderDate(windowStart),
-          dateEnd: toProviderDate(now),
-        }),
-        client.getEvents({
-          conceptUri: beat.concept_uris,
-          lang: beat.languages,
-          dateStart: toProviderDate(windowStart),
-          dateEnd: toProviderDate(now),
-        }),
-      ]);
+      const [articles, events] = beat.topic_page_uri
+        ? await Promise.all([
+            client.getTopicPageArticles({ uri: beat.topic_page_uri }),
+            client.getTopicPageEvents({ uri: beat.topic_page_uri }),
+          ])
+        : await Promise.all([
+            client.getArticles({
+              apiKey,
+              conceptUri: beat.concept_uris,
+              keyword: beat.keywords,
+              lang: beat.languages,
+              dateStart: toProviderDate(windowStart),
+              dateEnd: toProviderDate(now),
+            }),
+            client.getEvents({
+              conceptUri: beat.concept_uris,
+              lang: beat.languages,
+              dateStart: toProviderDate(windowStart),
+              dateEnd: toProviderDate(now),
+            }),
+          ]);
 
       const { pack } = buildPack(beat, articles, now, events);
       const line = `[pleiades-worker] ${beat.label}: ${pack.item_count} items, ${events.length} events, persisted=${persist}`;

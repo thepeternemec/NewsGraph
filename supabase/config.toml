@@ -421,4 +421,4 @@ verify_jwt = false
 [functions.worker]
 enabled = true
 verify_jwt = false
-schedule = "*/15 * * * *"
+# schedule paused while the topic queries are rebuilt (newsapi.ai MCP + Topic Pages)

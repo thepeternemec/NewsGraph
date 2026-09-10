@@ -32,21 +32,28 @@ async function runCycle(beats: typeof SEED_BEATS) {
 
   for (const beat of beats) {
     try {
-      const [articles, events] = await Promise.all([
-        client.getArticles({
-          apiKey,
-          conceptUri: beat.concept_uris,
-          lang: beat.languages,
-          dateStart: toProviderDate(windowStart),
-          dateEnd: toProviderDate(now),
-        }),
-        client.getEvents({
-          conceptUri: beat.concept_uris,
-          lang: beat.languages,
-          dateStart: toProviderDate(windowStart),
-          dateEnd: toProviderDate(now),
-        }),
-      ]);
+      // Preferred: a curated newsapi.ai Topic Page. Fallback: concept/keyword search.
+      const [articles, events] = beat.topic_page_uri
+        ? await Promise.all([
+            client.getTopicPageArticles({ uri: beat.topic_page_uri }),
+            client.getTopicPageEvents({ uri: beat.topic_page_uri }),
+          ])
+        : await Promise.all([
+            client.getArticles({
+              apiKey,
+              conceptUri: beat.concept_uris,
+              keyword: beat.keywords,
+              lang: beat.languages,
+              dateStart: toProviderDate(windowStart),
+              dateEnd: toProviderDate(now),
+            }),
+            client.getEvents({
+              conceptUri: beat.concept_uris,
+              lang: beat.languages,
+              dateStart: toProviderDate(windowStart),
+              dateEnd: toProviderDate(now),
+            }),
+          ]);
 
       const { pack } = buildPack(beat, articles, now, events);
       const summary: Record<string, unknown> = {

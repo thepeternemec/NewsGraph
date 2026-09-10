@@ -11,6 +11,10 @@ export const BeatSchema = z.object({
   label: z.string(),
   /** Wikipedia concept URIs — the exact dialect newsapi.ai queries with. */
   concept_uris: z.array(z.string().url()),
+  /** newsapi.ai Topic Page URI — the preferred curated topic profile (v0.2). */
+  topic_page_uri: z.string().optional(),
+  /** Exact-phrase keywords as a secondary filter (MCP search pattern). */
+  keywords: z.array(z.string()).optional(),
   topic_filters: z.array(z.string()),
   languages: z.array(LanguageCodeSchema),
   excludes: z.string(),

@@ -1,19 +1,19 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseClient, hasSupabaseEnv, latestPack } from "@pleiades/db";
 import type { Beat, Item } from "@pleiades/contracts";
-import type { ProviderArticle, ProviderEvent } from "./newsapi.js";
-import { eventTitle } from "./newsapi.js";
+import type { ProviderArticle } from "./newsapi.js";
 
 /**
- * Phase 1 persistence: raw articles + event clusters → packs.
- * All writes are idempotent: articles/events upsert by provider URI, packs
- * dedupe on cursor, and empty cycles (no new items) do not create packs.
+ * Persistence: raw articles + bounded packs.
+ *
+ * v0.3 model — English-only articles, no provider event clustering. All writes
+ * are idempotent (articles upsert by provider URI, packs dedupe on cursor) and
+ * an empty cycle never creates a pack.
  */
 
 export interface PersistedCycle {
   pack_id: string | null;
   item_count: number;
-  event_count: number;
   skipped: boolean;
 }
 
@@ -24,7 +24,6 @@ export function canPersist(): boolean {
 export async function persistCycle(
   beat: Beat,
   articles: ProviderArticle[],
-  events: ProviderEvent[],
   pack: { cursor: string; computed_at: string; item_count: number; token_estimate: number; receipt_id: string },
   items: Item[],
 ): Promise<PersistedCycle> {
@@ -42,44 +41,27 @@ export async function persistCycle(
     source_name: a.source?.title ?? a.source?.uri ?? null,
     sentiment: typeof a.sentiment === "number" ? a.sentiment : null,
     concepts: (a.concepts ?? []).map((c) => c.uri),
-    event_uri: a.eventUri ?? null,
+    lang: a.lang ?? "eng",
   }));
-  const { error: articlesError } = await db
-    .from("articles_raw")
-    .upsert(articleRows, { onConflict: "provider_uri" });
-  if (articlesError) throw new Error(`articles_raw upsert failed: ${articlesError.message}`);
-
-  // 2. Event clusters. event_id = provider event URI so pack_items.event_id
-  //    (article.eventUri) satisfies the foreign key.
-  const eventRows = events.map((e) => ({
-    event_id: e.uri,
-    provider_event_uri: e.uri,
-    beat_id: beat.beat_id,
-    title: eventTitle(e) ?? null,
-    first_seen_at: new Date().toISOString(),
-    last_seen_at: new Date().toISOString(),
-    source_count: e.sourceCount ?? e.totalArticleCount ?? 0,
-  }));
-  if (eventRows.length > 0) {
-    // ignoreDuplicates → ON CONFLICT DO NOTHING against the partial unique index.
-    const { error: eventsError } = await db
-      .from("events")
-      .upsert(eventRows, { ignoreDuplicates: true });
-    if (eventsError) throw new Error(`events upsert failed: ${eventsError.message}`);
+  if (articleRows.length > 0) {
+    const { error: articlesError } = await db
+      .from("articles_raw")
+      .upsert(articleRows, { onConflict: "provider_uri" });
+    if (articlesError) throw new Error(`articles_raw upsert failed: ${articlesError.message}`);
   }
 
-  // 3. No new items → no pack (keeps the stream noise-free and high-water honest).
+  // 2. No new English items → no pack (keeps the stream noise-free).
   if (items.length === 0) {
-    return { pack_id: null, item_count: 0, event_count: eventRows.length, skipped: true };
+    return { pack_id: null, item_count: 0, skipped: true };
   }
 
-  // 4. Unchanged cursor → already persisted this snapshot; do not duplicate.
+  // 3. Unchanged cursor → already persisted this snapshot; do not duplicate.
   const latest = await latestPack(db, beat.beat_id);
   if (latest && latest.cursor === pack.cursor) {
-    return { pack_id: latest.pack_id, item_count: items.length, event_count: eventRows.length, skipped: true };
+    return { pack_id: latest.pack_id, item_count: items.length, skipped: true };
   }
 
-  // 5. Pack + items (one provider query serves every subscriber).
+  // 4. Pack + items (one provider query serves every subscriber of the beat).
   const { data: packData, error: packError } = await db
     .from("packs")
     .insert({
@@ -102,17 +84,14 @@ export async function persistCycle(
     source: item.source,
     published_at: item.published_at,
     first_indexed_at: item.first_indexed_at,
-    event_id: item.event_id,
-    corroboration: item.corroboration,
     concepts: item.concepts,
     sentiment: item.sentiment,
+    lang: item.lang ?? "eng",
   }));
-  if (itemRows.length > 0) {
-    const { error: itemsError } = await db.from("pack_items").insert(itemRows);
-    if (itemsError) throw new Error(`pack_items insert failed: ${itemsError.message}`);
-  }
+  const { error: itemsError } = await db.from("pack_items").insert(itemRows);
+  if (itemsError) throw new Error(`pack_items insert failed: ${itemsError.message}`);
 
-  // 6. Advance the beat high-water mark.
+  // 5. Advance the beat high-water mark.
   const { error: highWaterError } = await db
     .from("beats")
     .update({ high_water_at: pack.computed_at })
@@ -122,7 +101,6 @@ export async function persistCycle(
   return {
     pack_id: (packData as { pack_id: string }).pack_id,
     item_count: items.length,
-    event_count: eventRows.length,
     skipped: false,
   };
 }

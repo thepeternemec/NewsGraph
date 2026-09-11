@@ -18,17 +18,16 @@ const API_BASE =
 
 interface Stats {
   beats: number;
-  total_items: number;
-  total_events: number;
-  clustered_items: number;
-  max_corroboration: number;
+  total_articles: number;
+  total_clusters: number;
+  english_only: boolean;
   recent: Array<{
     beat_label: string;
     lede: string;
     source: string;
     url: string;
-    event_id: string | null;
-    corroboration: number;
+    published_at: string;
+    lang: string | null;
   }>;
 }
 
@@ -48,15 +47,14 @@ const PILLARS = [
   },
   {
     kicker: "02 · Cluster",
-    title: "One story, every source that ran it",
-    desc: "Articles are deduplicated and linked into events. Corroboration tells you how many independent sources back a claim.",
-    mock: `event eng-11991401
-  "Saudi Arabia Runs Out of Easy
-   Routes for Oil to Bypass Iran"
-  sources     561
-  first seen  04:12Z
-  sentiment   -0.31
-  status      corroborated`,
+    title: "One beat, one article cluster",
+    desc: "Every article lands in its beat's bucket, deduplicated and ranked by publication time. A beat IS its article cluster — no hidden grouping.",
+    mock: `cluster b_78de9ccc21a4
+  "Strait of Hormuz"
+  articles    42
+  newest      04:12Z
+  language    eng
+  status      bucketed`,
   },
   {
     kicker: "03 · Deliver",
@@ -88,7 +86,7 @@ const FAQ = [
   },
   {
     q: "Where does the data come from?",
-    a: "newsapi.ai (Event Registry): concept-URI and category queries, event clustering, sentiment and duplicate filtering across global sources. Pleiades adds ranking, corroboration, bucketing into bounded packs, and the delivery rails.",
+    a: "newsapi.ai (Event Registry): concept-URI and category queries with sentiment and duplicate filtering across global sources. Pleiades adds English-only filtering, per-beat article clusters, bounded packs, and the delivery rails.",
   },
   {
     q: "How fast is \u201cbefore the mainstream\u201d?",
@@ -96,7 +94,7 @@ const FAQ = [
   },
   {
     q: "Do I get article bodies?",
-    a: "No — deliberately. A pack holds at most 8 items and a bounded token estimate, with a lede of at most 320 characters plus publisher URL, source, timestamp, concepts, sentiment and corroboration. You get the signal and the citation; you fetch the body yourself.",
+    a: "No — deliberately. A pack holds at most 8 items and a bounded token estimate, with a lede of at most 320 characters plus publisher URL, source, timestamp, language, concepts and sentiment. You get the signal and the citation; you fetch the body yourself.",
   },
   {
     q: "How do I get access?",
@@ -109,7 +107,7 @@ const FAQ = [
 ];
 
 const ROADMAP = [
-  { when: "Live", what: "Contract, 20 beats, clustering, corroboration, webhooks, live dashboard" },
+  { when: "Live", what: "Contract, 20 beats, English article clusters, webhooks, live dashboard" },
   { when: "Now", what: "Rebuilding topic queries on newsapi.ai Topic Pages → 100-topic catalog" },
   { when: "Next", what: "WebSocket push, Telegram + Discord delivery, MCP server" },
   { when: "Later", what: "x402 self-serve settlement, Virtuals ACP jobs, narrative + signal layer" },
@@ -143,17 +141,16 @@ export default function Home() {
   const items = stats?.recent ?? [];
   const ticker = items.length
     ? items
-    : [{ beat_label: "PLEIADES", lede: "Awaiting the next ingestion cycle.", source: "system", url: "#", event_id: null, corroboration: 0 }];
+    : [{ beat_label: "PLEIADES", lede: "Awaiting the next ingestion cycle.", source: "system", url: "#", published_at: "", lang: "eng" }];
 
   return (
     <>
       <nav className="nav">
         <div className="nav-pill">
-          <span className="nav-logo">
+          <a className="nav-logo" href="/">
             PLEIADES <i /> <small>terminal</small>
-          </span>
+          </a>
           <span className="nav-links">
-            <a className="nav-link" href="#terminal">Terminal</a>
             <a className="nav-link" href="#how">How it works</a>
             <a className="nav-link" href="#api">Contract</a>
             <a className="nav-link" href="#faq">FAQ</a>
@@ -170,16 +167,16 @@ export default function Home() {
               <span className="eyebrow-tag">Early access</span>
               {stats?.beats ?? 20} beats live
               <span style={{ color: "var(--border-strong)" }}>·</span>
-              signals <span style={{ color: "var(--text-secondary)" }}>{stats?.total_items ?? "\u2026"}</span>
+              articles <span style={{ color: "var(--text-secondary)" }}>{stats?.total_articles ?? "\u2026"}</span>
               <span style={{ color: "var(--border-strong)" }}>·</span>
-              clusters <span style={{ color: "var(--text-secondary)" }}>{stats?.total_events ?? "\u2026"}</span>
+              clusters <span style={{ color: "var(--text-secondary)" }}>{stats?.total_clusters ?? "\u2026"}</span>
             </span>
 
             <h1>The signal, before it reaches the mainstream.</h1>
             <p className="lede">
               Pleiades is a real-time news terminal for people and agents who cannot wait for
-              the trend. It watches thousands of sources, clusters every story into events,
-              scores corroboration, and hands you a bounded, structured pack — over an API,
+              the trend. It watches thousands of sources, buckets every English article into
+              its beat's cluster, and hands you a bounded, structured pack — over an API,
               a socket, a bot, or an agent-native rail.
             </p>
 
@@ -218,9 +215,7 @@ export default function Home() {
                     <div key={i} className="mock-row">
                       <span className="k">{it.beat_label}</span>
                       <span className="v">{it.lede}</span>
-                      <span className="s">
-                        {it.corroboration ? `\u25c8${it.corroboration} · ` : ""}{it.source}
-                      </span>
+                      <span className="s">{it.source}</span>
                     </div>
                   ))}
                   {items.length === 0 && (
@@ -251,18 +246,18 @@ export default function Home() {
                 <div className="metric-label">Beats configured and polling — each a living topic query</div>
               </div>
               <div>
-                <div className="metric-num">{stats?.total_items ?? "\u2026"}</div>
-                <div className="metric-label">Signals indexed into bounded, citable packs</div>
+                <div className="metric-num">{stats?.total_articles ?? "\u2026"}</div>
+                <div className="metric-label">English articles in bounded, citable packs</div>
               </div>
               <div>
-                <div className="metric-num">{stats?.total_events ?? "\u2026"}</div>
-                <div className="metric-label">Event clusters — one story, many sources</div>
+                <div className="metric-num">{stats?.total_clusters ?? "\u2026"}</div>
+                <div className="metric-label">Article clusters — one per beat</div>
               </div>
               <div>
-                <div className="metric-num">
-                  {stats?.max_corroboration ?? "\u2026"}<small>×</small>
+                <div className="metric-num" style={{ fontFamily: "var(--font-mono)", fontSize: 26 }}>
+                  eng
                 </div>
-                <div className="metric-label">Peak corroboration on a single story</div>
+                <div className="metric-label">Single language, single format — no translation drift</div>
               </div>
             </div>
           </div>
@@ -345,8 +340,7 @@ export default function Home() {
       "lede": "Ambarella Q2 2027 earnings call…",
       "source": "The Motley Fool",
       "published_at": "2026-09-09T20:30:00Z",
-      "event_id": "eng-11992096",
-      "corroboration": 12,
+      "lang": "eng",
       "sentiment": 0.18
     }
   ]
@@ -356,46 +350,46 @@ export default function Home() {
 
             <div className="showcase flip">
               <div>
-                <span className="sec-eyebrow">Corroboration</span>
-                <h3>Know what the market already believes.</h3>
+                <span className="sec-eyebrow">Article clusters</span>
+                <h3>One beat, one bucket. Nothing hidden.</h3>
                 <p>
-                  Single-source noise is easy to publish and easy to regret. Pleiades links
-                  every article to its event cluster, so each item carries the number of
-                  independent sources that ran the same story. A 561-source cluster is a fact;
-                  a one-source claim is a rumour you can rank below it.
+                  We do not re-cluster the world for you. Each beat is a living query, and its
+                  articles form that beat&rsquo;s cluster — deduplicated, English-only, ordered by
+                  publication time. What you subscribe to is exactly what you get: no opaque
+                  grouping, no story-merging you did not ask for.
                 </p>
                 <ul>
-                  <li>Cluster titles in plain language, not IDs</li>
-                  <li>A ranked corroboration view across the whole catalog</li>
-                  <li>Sentiment per item, so you can filter agreement and disagreement</li>
+                  <li>Cluster per beat, addressed by a stable beat ID</li>
+                  <li>English-only, so no translation drift in the stream</li>
+                  <li>Newest-first ordering, and a cursor that never skips</li>
                 </ul>
               </div>
               <div className="mock">
                 <div className="mock-bar">
                   <span className="mock-dots"><span /><span /><span /></span>
-                  <span className="mock-title">clusters · ranked by corroboration</span>
+                  <span className="mock-title">article clusters · one per beat</span>
                 </div>
                 <div className="mock-feed">
                   <div className="mock-row">
                     <span className="k">STRAIT OF HORMUZ</span>
-                    <span className="v">Saudi Arabia Runs Out of Easy Routes for Oil to Bypass Iran War</span>
-                    <span className="s">◈ 561</span>
-                  </div>
-                  <div className="mock-row">
-                    <span className="k">FEDERAL RESERVE</span>
-                    <span className="v">Dollar Recovers on Smaller Treasury Buyback and Higher T-Note Yields</span>
-                    <span className="s">◈ 175</span>
+                    <span className="v">42 english articles · newest 04:12Z</span>
+                    <span className="s">◈ active</span>
                   </div>
                   <div className="mock-row">
                     <span className="k">NVIDIA</span>
-                    <span className="v">Ambarella Q2 2027 Earnings Call Transcript</span>
-                    <span className="s">◈ 12</span>
+                    <span className="v">18 english articles · newest 20:30Z</span>
+                    <span className="s">◈ active</span>
+                  </div>
+                  <div className="mock-row">
+                    <span className="k">FEDERAL RESERVE</span>
+                    <span className="v">27 english articles · newest 19:05Z</span>
+                    <span className="s">◈ active</span>
                   </div>
                 </div>
                 <div className="mock-foot">
-                  <span>events · linked</span>
-                  <span>sources · counted</span>
-                  <span style={{ marginLeft: "auto" }}>sentiment · per item</span>
+                  <span>english only</span>
+                  <span>newest first</span>
+                  <span style={{ marginLeft: "auto" }}>signed cursor</span>
                 </div>
               </div>
             </div>
@@ -437,8 +431,8 @@ export default function Home() {
               <div>
                 <h3>Traders &amp; desks</h3>
                 <p>
-                  Machine-speed alerts with corroboration already attached, so your strategy
-                  can size conviction instead of reacting to headlines.
+                  Machine-speed alerts on English coverage, deduplicated and time-ordered, so
+                  your strategy reacts to structure instead of headlines.
                 </p>
                 <ul>
                   <li>Structured signals, not prose</li>
@@ -475,7 +469,7 @@ export default function Home() {
               <div>
                 <h3>Newsrooms</h3>
                 <p>
-                  Discovery and confirmation in one pass. Corroboration counts tell you how
+                  Discovery and confirmation in one pass. Cluster volume per beat shows you how
                   well a story is already covered before you commit a reporter.
                 </p>
                 <ul>

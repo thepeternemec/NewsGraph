@@ -6,15 +6,11 @@ import { persistCycle, canPersist } from "../_shared/worker/persist.ts";
 import { deliverWebhooksForPack } from "../_shared/worker/deliver.ts";
 
 /**
- * Ingestion cycle — Supabase Edge Function (Phase 1).
+ * Ingestion cycle — Supabase Edge Function.
  *
- * Triggered by the schedule in supabase/config.toml ([functions.worker] schedule)
- * or manually via HTTP GET. One invocation = one pass over the beats:
- *
- *   fetch (newsapi.ai) → event linkage → dedupe → pack → persist (Supabase)
- *
- * Persistence is skipped in dry-run when Supabase is not configured
- * (local dev), matching the Node dev mirror in apps/worker.
+ * English articles only → bounded pack → persist.
+ * No newsapi.ai event clustering: a beat's article bucket is its article cluster.
+ * Scheduled via [functions.worker] schedule in supabase/config.toml (currently paused).
  */
 
 async function runCycle(beats: typeof SEED_BEATS) {
@@ -25,59 +21,49 @@ async function runCycle(beats: typeof SEED_BEATS) {
 
   const client = new NewsApiClient(apiKey);
   const now = new Date();
-  // 24h window for the first backfill; steady-state cron can narrow this.
   const windowStart = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const persist = canPersist();
   const summaries: Array<Record<string, unknown>> = [];
 
   for (const beat of beats) {
     try {
-      // Preferred: a curated newsapi.ai Topic Page. Fallback: concept/keyword search.
-      const [articles, events] = beat.topic_page_uri
-        ? await Promise.all([
-            client.getTopicPageArticles({ uri: beat.topic_page_uri }),
-            client.getTopicPageEvents({ uri: beat.topic_page_uri }),
-          ])
-        : await Promise.all([
-            client.getArticles({
-              apiKey,
-              conceptUri: beat.concept_uris,
-              keyword: beat.keywords,
-              lang: beat.languages,
-              dateStart: toProviderDate(windowStart),
-              dateEnd: toProviderDate(now),
-            }),
-            client.getEvents({
-              conceptUri: beat.concept_uris,
-              lang: beat.languages,
-              dateStart: toProviderDate(windowStart),
-              dateEnd: toProviderDate(now),
-            }),
-          ]);
+      const articles = beat.topic_page_uri
+        ? await client.getTopicPageArticles({ uri: beat.topic_page_uri })
+        : await client.getArticles({
+            apiKey,
+            conceptUri: beat.concept_uris,
+            keyword: beat.keywords,
+            lang: ["eng"],
+            dateStart: toProviderDate(windowStart),
+            dateEnd: toProviderDate(now),
+          });
 
-      const { pack } = buildPack(beat, articles, now, events);
+      const { pack } = buildPack(beat, articles, now);
       const summary: Record<string, unknown> = {
         beat_id: beat.beat_id,
         label: beat.label,
         items: pack.item_count,
         tokens: pack.token_estimate,
-        events: events.length,
         persisted: false,
       };
 
       if (persist) {
-        const result = await persistCycle(beat, articles, events, pack, pack.items);
+        const result = await persistCycle(beat, articles, pack, pack.items);
         summary.persisted = !result.skipped;
         summary.skipped = result.skipped;
         if (result.pack_id) summary.pack_id = result.pack_id;
         if (!result.skipped) {
           const delivery = await deliverWebhooksForPack(createSupabaseClient(), beat.beat_id, pack);
-          summary.webhooks = { attempted: delivery.attempted, delivered: delivery.delivered, failed: delivery.failed };
+          summary.webhooks = {
+            attempted: delivery.attempted,
+            delivered: delivery.delivered,
+            failed: delivery.failed,
+          };
         }
       }
 
       summaries.push(summary);
-      console.log(`[worker] ${beat.label}: ${pack.item_count} items, ${events.length} events, persisted=${persist}`);
+      console.log(`[worker] ${beat.label}: ${pack.item_count} english items, persisted=${persist}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`[worker] cycle failed for ${beat.beat_id}:`, message);
@@ -101,14 +87,14 @@ Deno.serve(async (req) => {
 
   try {
     const summaries = await runCycle(beats);
-    return new Response(
-      JSON.stringify({ ok: true, beats: summaries.length, summaries }),
-      { status: 200, headers: { "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ ok: true, beats: summaries.length, summaries }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
-    return new Response(
-      JSON.stringify({ error: "internal_error", detail: String(error) }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ error: "internal_error", detail: String(error) }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 });

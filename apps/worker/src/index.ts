@@ -8,8 +8,8 @@ import { deliverWebhooksForPack } from "./deliver.js";
 /**
  * Ingestion cycle — Node dev mirror of the Supabase Edge Function.
  *
- * fetch (newsapi.ai) → event linkage → dedupe → pack → persist (Supabase).
- * When Supabase is not configured, the cycle runs dry (prints packs).
+ * articles (English only) → bounded pack → persist.
+ * No provider event clustering: a beat's article bucket IS its article cluster.
  */
 async function runCycle(beats = SEED_BEATS): Promise<void> {
   const apiKey = process.env.NEWSAPI_API_KEY;
@@ -21,44 +21,34 @@ async function runCycle(beats = SEED_BEATS): Promise<void> {
 
   const client = new NewsApiClient(apiKey);
   const now = new Date();
-  const windowStart = new Date(now.getTime() - 6 * 60 * 60 * 1000); // last 6h (pilot)
+  const windowStart = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const persist = canPersist();
 
   for (const beat of beats) {
     try {
-      const [articles, events] = beat.topic_page_uri
-        ? await Promise.all([
-            client.getTopicPageArticles({ uri: beat.topic_page_uri }),
-            client.getTopicPageEvents({ uri: beat.topic_page_uri }),
-          ])
-        : await Promise.all([
-            client.getArticles({
-              apiKey,
-              conceptUri: beat.concept_uris,
-              keyword: beat.keywords,
-              lang: beat.languages,
-              dateStart: toProviderDate(windowStart),
-              dateEnd: toProviderDate(now),
-            }),
-            client.getEvents({
-              conceptUri: beat.concept_uris,
-              lang: beat.languages,
-              dateStart: toProviderDate(windowStart),
-              dateEnd: toProviderDate(now),
-            }),
-          ]);
+      const articles = beat.topic_page_uri
+        ? await client.getTopicPageArticles({ uri: beat.topic_page_uri })
+        : await client.getArticles({
+            apiKey,
+            conceptUri: beat.concept_uris,
+            keyword: beat.keywords,
+            lang: ["eng"],
+            dateStart: toProviderDate(windowStart),
+            dateEnd: toProviderDate(now),
+          });
 
-      const { pack } = buildPack(beat, articles, now, events);
-      const line = `[pleiades-worker] ${beat.label}: ${pack.item_count} items, ${events.length} events, persisted=${persist}`;
-      console.log(line);
+      const { pack } = buildPack(beat, articles, now);
+      console.log(
+        `[pleiades-worker] ${beat.label}: ${pack.item_count} english items, persisted=${persist}`,
+      );
 
       if (persist) {
-        const result = await persistCycle(beat, articles, events, pack, pack.items);
+        const result = await persistCycle(beat, articles, pack, pack.items);
         if (!result.skipped) {
           const delivery = await deliverWebhooksForPack(createSupabaseClient(), beat.beat_id, pack);
           if (delivery.attempted > 0) {
             console.log(
-              `[pleiades-worker] webhooks: ${delivery.delivered}/${delivery.attempted} delivered (${delivery.failed} failed)`,
+              `[pleiades-worker] webhooks: ${delivery.delivered}/${delivery.attempted} delivered`,
             );
           }
         }
@@ -86,8 +76,6 @@ console.log(
 
 await runCycle(beats);
 
-// Keep polling on an interval when requested. Production scheduling runs on
-// Supabase via the Edge Function cron ([functions.worker] schedule).
 if (process.env.PLEIADES_LOOP === "true") {
   setInterval(() => void runCycle(beats), 60_000);
 }

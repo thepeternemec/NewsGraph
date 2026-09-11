@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildPack, providerArticleToItem, toBase64Url, estimateTokens } from "./pack.js";
-import type { ProviderArticle, ProviderEvent } from "./newsapi.js";
+import { buildPack, providerArticleToItem, toBase64Url, estimateTokens, isEnglish } from "./pack.js";
+import type { ProviderArticle } from "./newsapi.js";
 import type { Beat } from "@pleiades/contracts";
 
 const beat: Beat = {
@@ -16,12 +16,18 @@ const beat: Beat = {
   freshness_slo_minutes: 90,
 };
 
-const article = (uri: string, title: string, dateTime: string): ProviderArticle => ({
+const article = (
+  uri: string,
+  title: string,
+  dateTime: string,
+  lang = "eng",
+): ProviderArticle => ({
   uri: `id-${uri}`,
   url: `https://example.com/${uri}`,
   title,
   body: "",
   dateTime,
+  lang,
   source: { title: `Source-${uri}` },
   sentiment: 0.1,
 });
@@ -33,7 +39,23 @@ test("lede is capped at 320 chars and never carries full bodies", () => {
     new Date(),
   );
   assert.ok(item.lede.length <= 320);
-  assert.ok(!item.lede.includes(longBody)); // the full 5000-char body cannot fit
+  assert.ok(!item.lede.includes(longBody));
+});
+
+test("non-English articles are dropped before ranking", () => {
+  const articles = [
+    article("a1", "English story", "2026-09-10T08:00:00Z", "eng"),
+    article("a2", "Arabic story", "2026-09-10T09:00:00Z", "ara"),
+    article("a3", "German story", "2026-09-10T10:00:00Z", "deu"),
+  ];
+  const { pack } = buildPack(beat, articles, new Date("2026-09-10T12:00:00Z"));
+  assert.equal(pack.item_count, 1);
+  assert.equal(pack.items[0]?.url, "https://example.com/a1");
+  assert.equal(pack.items[0]?.lang, "eng");
+});
+
+test("missing lang is treated as English", () => {
+  assert.equal(isEnglish({ uri: "u", title: "t", body: "", source: {} }), true);
 });
 
 test("buildPack sorts newest-first and caps at 8 items", () => {
@@ -42,34 +64,19 @@ test("buildPack sorts newest-first and caps at 8 items", () => {
   );
   const { pack } = buildPack(beat, articles, new Date("2026-09-10T12:00:00Z"));
   assert.equal(pack.items.length, 8);
-  assert.equal(pack.items[0]?.url, "https://example.com/u11"); // newest first
+  assert.equal(pack.items[0]?.url, "https://example.com/u11");
   assert.equal(pack.items[7]?.url, "https://example.com/u4");
   assert.ok(pack.token_estimate <= 800);
 });
 
-test("event linkage fills event_id and corroboration", () => {
-  const articles = [
-    article("a1", "One", "2026-09-10T08:00:00Z"),
-    article("a2", "Two", "2026-09-10T07:00:00Z"),
-  ];
-  const events: ProviderEvent[] = [
-    { uri: "evt-1", articles: [{ uri: "id-a1" }, { uri: "id-a2" }] },
-  ];
-  const { pack } = buildPack(beat, articles, new Date("2026-09-10T09:00:00Z"), events);
-  assert.equal(pack.items[0]?.event_id, "evt-1");
-  assert.equal(pack.items[0]?.corroboration, 2); // two distinct sources
-  assert.equal(pack.items[1]?.corroboration, 2);
-});
-
-test("article eventUri + event totalArticleCount drive corroboration", () => {
-  const withEvent: ProviderArticle = {
-    ...article("a1", "One", "2026-09-10T08:00:00Z"),
-    eventUri: "evt-9",
-  };
-  const events: ProviderEvent[] = [{ uri: "evt-9", totalArticleCount: 14 }];
-  const { pack } = buildPack(beat, [withEvent], new Date("2026-09-10T09:00:00Z"), events);
-  assert.equal(pack.items[0]?.event_id, "evt-9");
-  assert.equal(pack.items[0]?.corroboration, 14);
+test("items carry no provider event linkage", () => {
+  const { pack } = buildPack(
+    beat,
+    [article("a1", "One", "2026-09-10T08:00:00Z")],
+    new Date("2026-09-10T09:00:00Z"),
+  );
+  assert.equal(pack.items[0]?.event_id ?? null, null);
+  assert.equal(pack.items[0]?.corroboration ?? 0, 0);
 });
 
 test("cursor is base64url of beat_id:highWater and round-trips", () => {

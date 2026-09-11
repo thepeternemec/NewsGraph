@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import SignalField from "@/components/signal-field";
-import Beam from "@/components/beam";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
@@ -10,69 +9,50 @@ const API_BASE =
 
 interface Stats {
   beats: number;
-  total_items: number;
-  total_events: number;
-  clustered_items: number;
-  max_corroboration: number;
+  total_articles: number;
+  total_clusters: number;
+  english_only: boolean;
   last_ingestion_at: string | null;
-  by_beat: Array<{
+  clusters: Array<{
+    cluster_id: string;
     beat_id: string;
     label: string;
-    items: number;
-    events: number;
-    corroboration_max: number;
+    articles: number;
+    latest_at: string | null;
   }>;
   recent: Array<{
     beat_label: string;
     lede: string;
     source: string;
     url: string;
-    event_id: string | null;
-    corroboration: number;
     published_at: string;
-  }>;
-  clusters: Array<{
-    event_id: string;
-    beat_id: string;
-    title: string | null;
-    source_count: number;
-    beat_label: string;
-  }>;
-  top_corroborated: Array<{
-    beat_label: string;
-    lede: string;
-    source: string;
-    url: string;
-    corroboration: number;
+    lang: string | null;
   }>;
 }
 
-type View = "signals" | "clusters" | "corroboration";
+type View = "signals" | "clusters";
 
 const TABS: Array<{ value: View; title: string }> = [
   { value: "signals", title: "Signals" },
-  { value: "clusters", title: "Clusters" },
-  { value: "corroboration", title: "Corroboration" },
+  { value: "clusters", title: "Article clusters" },
 ];
 
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [view, setView] = useState<View>("signals");
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [stamp, setStamp] = useState("");
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       try {
         const res = await fetch(`${API_BASE}/v1/stats`, { cache: "no-store" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as Stats;
-        if (!cancelled) {
-          setStats(data);
-          setLastRefresh(new Date());
+        if (res.ok && !cancelled) {
+          setStats((await res.json()) as Stats);
+          setStamp(new Date().toLocaleTimeString());
         }
       } catch {
-        /* backend paused */
+        /* paused */
       }
     }
     load();
@@ -84,196 +64,162 @@ export default function Dashboard() {
   }, []);
 
   const counts: Record<View, number | undefined> = {
-    signals: stats?.total_items,
-    clusters: stats?.total_events,
-    corroboration: stats?.clustered_items,
+    signals: stats?.total_articles,
+    clusters: stats?.total_clusters,
   };
 
   return (
-    <main className="shell">
-      <Beam size="line" strength={0.5} className="beam-box beam-toolbar"><header className="app-toolbar">
-        <div className="app-brand">
-          <span>PLEIADES</span>
-          <i />
-          <small>live dashboard</small>
-        </div>
-        <div className="toolbar-flow">
-          <span>{lastRefresh ? lastRefresh.toLocaleTimeString() : "connecting"}</span>
-          <i>·</i> refreshes every 15s
-        </div>
-      </header></Beam>
-
-      <div className="dash-layout">
-        <aside className="dash-sidebar">
-          <p className="side-label">Views</p>
-          <nav className="side-nav" aria-label="Dashboard views">
+    <>
+      <nav className="nav">
+        <div className="nav-pill">
+          <a className="nav-logo" href="/">
+            PLEIADES <i /> <small>dashboard</small>
+          </a>
+          <span className="nav-links">
             {TABS.map((t) => (
               <button
                 key={t.value}
                 type="button"
-                className={`side-item${view === t.value ? " active" : ""}`}
+                className="nav-link"
                 onClick={() => setView(t.value)}
-                aria-current={view === t.value ? "page" : undefined}
+                style={view === t.value ? { color: "#fff", background: "rgba(255,255,255,0.06)" } : undefined}
               >
-                <span className="mark" aria-hidden="true" />
                 {t.title}
-                <span className="side-count">{counts[t.value] ?? "…"}</span>
+                <span style={{ marginLeft: 8, color: "var(--text-ghost)", fontFamily: "var(--font-mono)", fontSize: 10 }}>
+                  {counts[t.value] ?? "…"}
+                </span>
               </button>
             ))}
-          </nav>
-          <div className="side-foot">
-            <a href="/">← Home</a>
-          </div>
-        </aside>
+          </span>
+          <a className="nav-cta" href="/">← Home</a>
+        </div>
+      </nav>
 
-        <section className="dash-main">
-          <div className="context-head" style={{ marginBottom: 32 }}>
+      <main className="wrap" style={{ paddingTop: 132, paddingBottom: 96 }}>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24, marginBottom: 28 }}>
+          <div>
+            <span className="sec-eyebrow">Live terminal · English only</span>
+            <h1 style={{ margin: 0, fontSize: "clamp(30px, 4vw, 44px)", lineHeight: 1.05, letterSpacing: "-0.035em", color: "#fff", fontWeight: 600 }}>
+              {TABS.find((t) => t.value === view)?.title}
+            </h1>
+          </div>
+          <span style={{ font: "11px var(--font-mono), monospace", color: "var(--text-ghost)" }}>
+            {stamp ? `updated ${stamp}` : "connecting…"}
+          </span>
+        </div>
+
+        <div className="metrics" style={{ borderTop: 0, paddingTop: 0 }}>
+          <div className="metrics-grid">
             <div>
-              <p className="kicker">Live dashboard</p>
-              <h2>{TABS.find((t) => t.value === view)?.title}</h2>
+              <div className="metric-num">{stats?.beats ?? "…"}</div>
+              <div className="metric-label">Beats</div>
             </div>
-            <p>
-              {lastRefresh
-                ? `Updated ${lastRefresh.toLocaleTimeString()} · refreshes every 15s`
-                : "Connecting…"}
-            </p>
+            <div>
+              <div className="metric-num">{stats?.total_articles ?? "…"}</div>
+              <div className="metric-label">English articles</div>
+            </div>
+            <div>
+              <div className="metric-num">{stats?.total_clusters ?? "…"}</div>
+              <div className="metric-label">Article clusters</div>
+            </div>
+            <div>
+              <div className="metric-num" style={{ fontFamily: "var(--font-mono)", fontSize: 22 }}>
+                {stats?.last_ingestion_at ? stats.last_ingestion_at.slice(11, 16) + "Z" : "—"}
+              </div>
+              <div className="metric-label">Last ingest</div>
+            </div>
           </div>
+        </div>
 
-          {view === "signals" && (
-            <>
-              <div className="stat-band">
-                
-                  <div className="stat-cell">
-                    <b>{stats?.beats ?? "…"}</b>
-                    <span>beats</span>
-                  </div>
-                
-                
-                  <div className="stat-cell">
-                    <b>{stats?.total_items ?? "…"}</b>
-                    <span>signals indexed</span>
-                  </div>
-                
-                
-                  <div className="stat-cell">
-                    <b>{stats?.total_events ?? "…"}</b>
-                    <span>event clusters</span>
-                  </div>
-                
-                
-                  <div className="stat-cell">
-                    <b>{stats?.clustered_items ?? "…"}</b>
-                    <span>clustered items</span>
-                  </div>
-                
-                
-                  <div className="stat-cell">
-                    <b>{stats?.max_corroboration ?? "…"}</b>
-                    <span>max corroboration</span>
-                  </div>
-                
+        {view === "signals" ? (
+          <>
+            <div className="mock" style={{ marginTop: 40 }}>
+              <div className="mock-bar">
+                <span className="mock-dots"><span /><span /><span /></span>
+                <span className="mock-title">signal field</span>
+                <span className="mock-live">streaming</span>
               </div>
+              <SignalField
+                items={(stats?.recent ?? []).map((r) => ({
+                  beat_label: r.beat_label,
+                  lede: r.lede,
+                  source: r.source,
+                  url: r.url,
+                }))}
+              />
+            </div>
 
-              <div className="panel-card" style={{ marginTop: 20 }}>
-                <h2>Signal field</h2>
-                <SignalField items={stats?.recent ?? []} />
+            <div className="mock" style={{ marginTop: 24 }}>
+              <div className="mock-bar">
+                <span className="mock-dots"><span /><span /><span /></span>
+                <span className="mock-title">latest signals</span>
+                <span className="mock-live">english</span>
               </div>
-
-              <div className="panel-card" style={{ marginTop: 20, padding: 0 }}>
-                <div className="windowbar" style={{ padding: "18px 24px" }}>
-                  <span className="dots" aria-hidden="true">
-                    <span className="dot" />
-                    <span className="dot" />
-                    <span className="dot" />
+              <div className="mock-feed">
+                {(stats?.recent ?? []).slice(0, 24).map((it, i) => (
+                  <a key={i} className="mock-row" href={it.url} target="_blank" rel="noreferrer">
+                    <span className="k">{it.beat_label}</span>
+                    <span className="v">{it.lede}</span>
+                    <span className="s">{it.source}</span>
+                  </a>
+                ))}
+                {(stats?.recent ?? []).length === 0 && (
+                  <div className="mock-row">
+                    <span className="k">awaiting</span>
+                    <span className="v">Ingestion paused while the topic catalog is rebuilt.</span>
+                    <span className="s">system</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="mock" style={{ marginTop: 40 }}>
+            <div className="mock-bar">
+              <span className="mock-dots"><span /><span /><span /></span>
+              <span className="mock-title">article clusters · one per beat</span>
+              <span className="mock-live">{stats?.total_clusters ?? 0} active</span>
+            </div>
+            <div className="mock-feed">
+              {(stats?.clusters ?? []).map((c) => (
+                <div key={c.cluster_id} className="mock-row">
+                  <span className="k" title={c.cluster_id}>{c.label}</span>
+                  <span className="v">
+                    {c.articles} english article{c.articles === 1 ? "" : "s"}
                   </span>
-                  <span className="title">latest signals</span>
-                  <span className="live">streaming</span>
+                  <span className="s">
+                    {c.latest_at ? `latest ${c.latest_at.slice(11, 16)}Z` : "—"}
+                  </span>
                 </div>
-                <div className="terminal-feed" style={{ border: 0, marginTop: 0 }}>
-                  {(stats?.recent ?? []).slice(0, 20).map((item, i) => (
-                    <div key={i} className="feed-line">
-                      <span className="tag">{item.beat_label}</span>
-                      <a className="txt" href={item.url} target="_blank" rel="noreferrer" style={{ color: "#c9c9c3", textDecoration: "none" }}>
-                        {item.lede}
-                      </a>
-                      <span className="src">
-                        {item.event_id ? `◈${item.corroboration || "—"}` : "·"} {item.source}
-                      </span>
-                    </div>
-                  ))}
+              ))}
+              {(stats?.clusters ?? []).length === 0 && (
+                <div className="mock-row">
+                  <span className="k">awaiting</span>
+                  <span className="v">No clusters yet — ingestion is paused.</span>
+                  <span className="s">system</span>
                 </div>
-              </div>
-            </>
-          )}
-
-          {view === "clusters" && (
-            <div className="panel-card" style={{ padding: 0 }}>
-              <div className="windowbar" style={{ padding: "18px 24px" }}>
-                <span className="dots" aria-hidden="true">
-                  <span className="dot" />
-                  <span className="dot" />
-                  <span className="dot" />
-                </span>
-                <span className="title">event clusters · {stats?.total_events ?? 0} total</span>
-              </div>
-              <div className="terminal-feed" style={{ border: 0, marginTop: 0 }}>
-                {(stats?.clusters ?? []).map((c) => (
-                  <div key={c.event_id} className="feed-line">
-                    <span className="tag">{c.beat_label}</span>
-                    <span className="txt">{c.title ?? c.event_id}</span>
-                    <span className="src" title={c.event_id}>◈ {c.source_count} sources</span>
-                  </div>
-                ))}
-                {(stats?.clusters ?? []).length === 0 && (
-                  <div className="feed-line">
-                    <span className="tag">awaiting</span>
-                    <span className="txt">No event clusters yet — backend is paused.</span>
-                    <span className="src">pleiades</span>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
-          )}
+          </div>
+        )}
+      </main>
 
-          {view === "corroboration" && (
-            <div className="panel-card" style={{ padding: 0 }}>
-              <div className="windowbar" style={{ padding: "18px 24px" }}>
-                <span className="dots" aria-hidden="true">
-                  <span className="dot" />
-                  <span className="dot" />
-                  <span className="dot" />
-                </span>
-                <span className="title">most corroborated stories · ranked by source count</span>
-              </div>
-              <div className="terminal-feed" style={{ border: 0, marginTop: 0 }}>
-                {(stats?.top_corroborated ?? []).map((it, i) => (
-                  <div key={i} className="feed-line">
-                    <span className="tag" style={{ color: "#ededE8", fontWeight: 600 }}>◈ {it.corroboration}</span>
-                    <a className="txt" href={it.url} target="_blank" rel="noreferrer" style={{ color: "#c9c9c3", textDecoration: "none" }}>
-                      {it.lede}
-                    </a>
-                    <span className="src">{it.source} · {it.beat_label}</span>
-                  </div>
-                ))}
-                {(stats?.top_corroborated ?? []).length === 0 && (
-                  <div className="feed-line">
-                    <span className="tag">awaiting</span>
-                    <span className="txt">No corroborated stories yet — backend is paused.</span>
-                    <span className="src">pleiades</span>
-                  </div>
-                )}
-              </div>
+      <footer className="site">
+        <div className="wrap">
+          <div className="footer-row">
+            <div className="footer-brand-line">
+              <span className="footer-co">PLEIADES</span>
+              <span style={{ color: "var(--border-strong)" }}>/</span>
+              <span className="footer-address">live dashboard</span>
             </div>
-          )}
-        </section>
-      </div>
-
-      <footer className="unified-footer">
-        <div className="unified-footer-bottom">
-          <span>pleiades — live dashboard</span>
-          <span>“The number prioritizes. The evidence decides.”</span>
+            <div className="footer-links">
+              <a href="/">Home</a>
+              <a href="/#api">Contract</a>
+              <a href="/#faq">FAQ</a>
+            </div>
+          </div>
         </div>
       </footer>
-    </main>
+    </>
   );
 }

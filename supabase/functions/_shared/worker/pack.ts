@@ -11,15 +11,15 @@ import {
   type Pack,
 } from "../contracts/index.ts";
 import type { ProviderArticle } from "./newsapi.ts";
-import { linkArticlesToEvents } from "./events.ts";
 
 /**
  * Build a bounded pack from provider articles.
  *
- * Phase 1 invariants (docs/ARCHITECTURE.md §2):
+ * Model (v0.3):
+ *  - English only — non-English articles are dropped before ranking
+ *  - No provider event clustering: articles are bucketed per beat, and the
+ *    beat's bucket is its "article cluster"
  *  - ≤8 items, ≤800 token estimate, lede ≤320 chars, never full bodies
- *  - sorted newest-first
- *  - event_id/corroboration from provider event clusters when available
  */
 
 /** Rough token estimate: ~4 chars/token, rounded up. */
@@ -35,12 +35,14 @@ export function toBase64Url(input: string): string {
   return btoa(input).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-export function providerArticleToItem(
-  article: ProviderArticle,
-  now: Date,
-  eventId: string | null = null,
-  corroboration = 0,
-): Item {
+export const ENGLISH = "eng";
+
+/** English-only gate. Providers omit lang on some feeds; missing means English. */
+export function isEnglish(article: ProviderArticle): boolean {
+  return (article.lang ?? ENGLISH) === ENGLISH;
+}
+
+export function providerArticleToItem(article: ProviderArticle, now: Date): Item {
   const publishedAt = article.dateTime ?? article.date ?? new Date(0).toISOString();
   const bodyLede = article.body ? article.body.slice(0, PACK_LIMITS.max_lede_chars) : "";
   const lede = (article.title ? `${article.title}. ` : "") + bodyLede;
@@ -51,9 +53,8 @@ export function providerArticleToItem(
     source: article.source?.title ?? article.source?.uri ?? "unknown source",
     published_at: publishedAt,
     first_indexed_at: now.toISOString(),
-    event_id: eventId,
-    corroboration,
     concepts: (article.concepts ?? []).map((c) => c.uri),
+    lang: article.lang ?? ENGLISH,
     sentiment:
       typeof article.sentiment === "number"
         ? Math.max(-1, Math.min(1, article.sentiment))
@@ -67,37 +68,13 @@ export interface BuildPackResult {
   includedUris: string[];
 }
 
-/**
- * @param events provider event clusters for the same window; optional for
- *               backward compatibility (clustering is skipped when omitted)
- */
-export function buildPack(
-  beat: Beat,
-  articles: ProviderArticle[],
-  now: Date,
-  events: Parameters<typeof linkArticlesToEvents>[1] = [],
-): BuildPackResult {
-  const { eventUriByArticle, corroborationByEvent } = linkArticlesToEvents(articles, events);
-
-  // Preferred linkage: the article's own eventUri (from includeArticleEventUri)
-  // plus the event's cluster size. Fall back to membership lists when present.
-  const countByEvent = new Map<string, number>();
-  for (const e of events) {
-    const count = e.totalArticleCount ?? e.sourceCount;
-    if (count != null) countByEvent.set(e.uri, count);
-  }
-
+export function buildPack(beat: Beat, articles: ProviderArticle[], now: Date): BuildPackResult {
   const items = articles
+    .filter(isEnglish)
     .slice()
     .sort((a, b) => (b.dateTime ?? b.date ?? "").localeCompare(a.dateTime ?? a.date ?? ""))
     .slice(0, PACK_LIMITS.max_items)
-    .map((a) => {
-      const eventUri = a.eventUri ?? eventUriByArticle.get(a.uri) ?? null;
-      const corroboration = eventUri
-        ? (countByEvent.get(eventUri) ?? corroborationByEvent.get(eventUri) ?? 0)
-        : 0;
-      return providerArticleToItem(a, now, eventUri, corroboration);
-    });
+    .map((a) => providerArticleToItem(a, now));
 
   const tokenEstimate = items.reduce(
     (sum, item) => sum + estimateTokens(item.lede) + estimateTokens(item.source) + 8,
@@ -105,8 +82,8 @@ export function buildPack(
   );
 
   // Cursor: high-water mark = max published time. Receipts are placeholder
-  // until the ledger billing loop lands (Phase 0/4); persisted packs carry
-  // receipt_id 'pending' so the contract shape stays stable.
+  // until the ledger billing loop lands; persisted packs carry receipt_id
+  // 'pending' so the contract shape stays stable.
   const highWater =
     items.length > 0
       ? items.reduce((max, i) => (i.published_at > max ? i.published_at : max), "")

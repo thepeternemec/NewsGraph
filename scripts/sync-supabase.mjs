@@ -141,11 +141,6 @@ const COPIES = [
     rewrite: [['from "zod"', 'from "npm:zod@^3.24.1"']],
   },
   {
-    src: "apps/worker/src/events.ts",
-    dst: "worker/events.ts",
-    rewrite: [['from "./newsapi.js"', 'from "./newsapi.ts"']],
-  },
-  {
     src: "apps/worker/src/pack.ts",
     dst: "worker/pack.ts",
     rewrite: [

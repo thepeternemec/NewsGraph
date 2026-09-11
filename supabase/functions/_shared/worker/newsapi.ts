@@ -17,8 +17,8 @@ const ProviderArticleSchema = z
     uri: z.string(),
     /** Public article URL — the provider `uri` is a numeric id, not a URL. */
     url: z.string().url().optional(),
-    /** Event cluster membership, populated with includeArticleEventUri. */
-    eventUri: z.string().nullable().optional(),
+    /** Article language code (e.g. "eng"). */
+    lang: z.string().optional(),
     title: z.string(),
     body: z.string().optional().default(""),
     date: z.string().optional(),
@@ -42,56 +42,6 @@ const ProviderArticlesResponseSchema = z.object({
 });
 
 export type ProviderArticle = z.infer<typeof ProviderArticleSchema>;
-
-/**
- * Event cluster. Field names follow the provider's documented shape; the
- * article membership list is parsed defensively because its exact name has
- * varied across provider versions — verify against the live sandbox with
- * the production key before relying on cluster membership.
- */
-const ProviderEventSchema = z
-  .object({
-    uri: z.string(),
-    /** Event titles are localized objects like {"eng": "...", "spa": "..."}. */
-    title: z.union([z.string(), z.record(z.string())]).optional(),
-    eventDate: z.string().optional(),
-    totalArticleCount: z.number().int().optional(),
-    /** Distinct source count in the cluster (may be nested or absent). */
-    sourceCount: z.number().int().optional(),
-    articles: z
-      .array(z.object({ uri: z.string() }).passthrough())
-      .optional(),
-    articleUris: z.array(z.string()).optional(),
-  })
-  .passthrough();
-
-const ProviderEventsResponseSchema = z.object({
-  events: z
-    .object({
-      results: z.array(ProviderEventSchema),
-      pages: z.number().int().optional(),
-      totalResults: z.number().int().optional(),
-    })
-    .passthrough(),
-});
-
-export type ProviderEvent = z.infer<typeof ProviderEventSchema>;
-
-/** Article URIs belonging to an event, whichever provider field carries them. */
-export function eventArticleUris(event: ProviderEvent): string[] {
-  if (event.articles && event.articles.length > 0) return event.articles.map((a) => a.uri);
-  return event.articleUris ?? [];
-}
-
-/** Best-effort event title: prefer English, else the first available language. */
-export function eventTitle(event: ProviderEvent): string | undefined {
-  const title = event.title;
-  if (typeof title === "string") return title;
-  if (title && typeof title === "object") {
-    return title["eng"] ?? Object.values(title)[0];
-  }
-  return undefined;
-}
 
 export interface GetArticlesParams {
   apiKey: string;
@@ -150,8 +100,6 @@ export class NewsApiClient {
       isDuplicateFilter: params.skipDuplicates === false ? undefined : "skipDuplicates",
       // Sentiment is returned via the includeFields mechanism.
       includeFields: params.includeSentiment === false ? undefined : "sentiment",
-      // Event cluster membership per article (drives event_id + corroboration).
-      includeArticleEventUri: true,
     };
 
     const response = await this.fetchImpl(`${this.baseUrl}/article/getArticles`, {
@@ -170,39 +118,6 @@ export class NewsApiClient {
     return parsed.articles.results;
   }
 
-  /** Placeholder — event clustering lands with the Phase 1 event linkage. */
-  async getEvents(params: {
-    conceptUri?: string[];
-    lang?: string[];
-    dateStart: string;
-    dateEnd: string;
-    articlesCount?: number;
-  }): Promise<ProviderEvent[]> {
-    const body = {
-      apiKey: this.apiKey,
-      conceptUri: params.conceptUri,
-      lang: params.lang,
-      dateStart: params.dateStart,
-      dateEnd: params.dateEnd,
-      articlesCount: params.articlesCount ?? 100,
-      includeArticleUris: true,
-    };
-
-    const response = await this.fetchImpl(`${this.baseUrl}/event/getEvents`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `newsapi.ai getEvents failed: HTTP ${response.status} ${await response.text()}`,
-      );
-    }
-
-    const parsed = ProviderEventsResponseSchema.parse(await response.json());
-    return parsed.events.results;
-  }
 
   /**
    * Articles from a pre-configured newsapi.ai Topic Page — the curated topic
@@ -221,7 +136,6 @@ export class NewsApiClient {
       articleBodyLen: 300,
       articlesCount: params.articlesCount ?? 100,
       articlesSortBy: params.articlesSortBy ?? "date",
-      includeArticleEventUri: true,
     };
 
     const response = await this.fetchImpl(`${this.baseUrl}/article/getArticlesForTopicPage`, {
@@ -238,29 +152,6 @@ export class NewsApiClient {
     return parsed.articles.results;
   }
 
-  /** Event clusters for a pre-configured newsapi.ai Topic Page. */
-  async getTopicPageEvents(params: { uri: string; eventsCount?: number }): Promise<ProviderEvent[]> {
-    const body = {
-      apiKey: this.apiKey,
-      uri: params.uri,
-      resultType: "events",
-      eventsCount: params.eventsCount ?? 100,
-      includeArticleUris: true,
-    };
-
-    const response = await this.fetchImpl(`${this.baseUrl}/event/getEventsForTopicPage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (!response.ok) {
-      throw new Error(
-        `newsapi.ai getEventsForTopicPage failed: HTTP ${response.status} ${await response.text()}`,
-      );
-    }
-    const parsed = ProviderEventsResponseSchema.parse(await response.json());
-    return parsed.events.results;
-  }
 }
 
 /** YYYY-MM-DD in UTC. */

@@ -17,11 +17,13 @@ export const ItemSchema = z.object({
   source: z.string(),
   published_at: z.string(),
   first_indexed_at: z.string(),
-  /** Event cluster identifier, or null when not clustered. */
-  event_id: z.string().nullable(),
-  /** Nonnegative count of distinct sources in the event cluster. */
-  corroboration: z.number().int().nonnegative(),
+  /** Legacy: provider event cluster id. Always null — clusters are per beat. */
+  event_id: z.string().nullable().optional(),
+  /** Legacy: distinct sources in a provider cluster. Always 0. */
+  corroboration: z.number().int().nonnegative().optional(),
   concepts: z.array(z.string()),
+  /** ISO 639-2/3 language code of the article. */
+  lang: z.string().optional(),
   /** Score from −1 to 1, or null when unavailable. */
   sentiment: z.number().min(-1).max(1).nullable(),
 

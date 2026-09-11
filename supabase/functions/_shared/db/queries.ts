@@ -55,6 +55,7 @@ interface PackItemRow {
   event_id: string | null;
   corroboration: number;
   concepts: string[];
+  lang?: string | null;
   sentiment: number | null;
   summary?: string | null;
   importance?: number | null;
@@ -81,6 +82,7 @@ export async function packItems(db: SupabaseClient, packId: string): Promise<Ite
       event_id: row.event_id,
       corroboration: row.corroboration,
       concepts: row.concepts ?? [],
+      lang: row.lang ?? undefined,
       sentiment: row.sentiment,
       ...(row.summary != null ? { summary: row.summary } : {}),
       ...(row.importance != null ? { importance: row.importance } : {}),
@@ -179,56 +181,53 @@ export async function activeWebhooksForBeat(
 
 export interface DashboardStats {
   beats: number;
-  total_items: number;
-  total_events: number;
-  clustered_items: number;
-  max_corroboration: number;
+  total_articles: number;
+  total_clusters: number;
+  english_only: boolean;
   last_ingestion_at: string | null;
   by_beat: Array<{
     beat_id: string;
     label: string;
-    items: number;
-    events: number;
-    corroboration_max: number;
+    articles: number;
     last_computed_at: string | null;
+  }>;
+  /** Article clusters — one per beat: the beat's bucket of English articles. */
+  clusters: Array<{
+    cluster_id: string;
+    beat_id: string;
+    label: string;
+    articles: number;
+    latest_at: string | null;
   }>;
   recent: Array<{
     beat_label: string;
     lede: string;
     source: string;
     url: string;
-    event_id: string | null;
-    corroboration: number;
     published_at: string;
+    lang: string | null;
   }>;
-  clusters: Array<{
-    event_id: string;
-    beat_id: string;
-    title: string | null;
-    source_count: number;
-    beat_label: string;
-  }>;
-  top_corroborated: Array<{
-    beat_label: string;
-    lede: string;
-    source: string;
-    url: string;
-    corroboration: number;
-  }>;
-  timeline: Array<{ day: string; items: number; events: number }>;
+  timeline: Array<{ day: string; articles: number }>;
 }
 
-/** Aggregate the pipeline's state for the dashboard. Data is small enough
- *  to pull and aggregate in-process (20 beats, ~hundreds of items/events). */
+const ENGLISH = "eng";
+
+/**
+ * Aggregate the pipeline for the dashboard.
+ *
+ * v0.3: English-only. No provider event clustering — an article cluster is a
+ * beat's bucket of articles, so `clusters` is derived from beats + packs.
+ */
 export async function getDashboardStats(db: SupabaseClient): Promise<DashboardStats> {
-  const [beatsRes, packsRes, itemsRes, eventsRes] = await Promise.all([
+  const [beatsRes, packsRes, itemsRes] = await Promise.all([
     db.from("beats").select("beat_id, label"),
     db.from("packs").select("pack_id, beat_id, computed_at, item_count"),
-    db.from("pack_items")
-      .select("pack_id, lede, url, source, published_at, event_id, corroboration")
+    db
+      .from("pack_items")
+      .select("pack_id, lede, url, source, published_at, lang")
+      .or(`lang.is.null,lang.eq.${ENGLISH}`)
       .order("published_at", { ascending: false })
       .limit(1000),
-    db.from("events").select("event_id, beat_id, title, source_count"),
   ]);
 
   const beats = (beatsRes.data ?? []) as Array<{ beat_id: string; label: string }>;
@@ -237,10 +236,7 @@ export async function getDashboardStats(db: SupabaseClient): Promise<DashboardSt
   }>;
   const items = (itemsRes.data ?? []) as Array<{
     pack_id: string; lede: string; url: string; source: string;
-    published_at: string; event_id: string | null; corroboration: number;
-  }>;
-  const events = (eventsRes.data ?? []) as Array<{
-    event_id: string; beat_id: string; title: string | null; source_count: number;
+    published_at: string; lang: string | null;
   }>;
 
   const beatByPack = new Map(packs.map((p) => [p.pack_id, p.beat_id]));
@@ -251,84 +247,55 @@ export async function getDashboardStats(db: SupabaseClient): Promise<DashboardSt
     if (!prev || p.computed_at > prev) computedByBeat.set(p.beat_id, p.computed_at);
   }
 
-  const itemsByBeat = new Map<string, number>();
-  const corrMaxByBeat = new Map<string, number>();
-  const eventsByBeat = new Map<string, number>();
+  const articlesByBeat = new Map<string, number>();
+  const latestByBeat = new Map<string, string | null>();
   for (const b of beats) {
-    itemsByBeat.set(b.beat_id, 0);
-    corrMaxByBeat.set(b.beat_id, 0);
-    eventsByBeat.set(b.beat_id, 0);
+    articlesByBeat.set(b.beat_id, 0);
+    latestByBeat.set(b.beat_id, null);
   }
-  let clustered = 0;
-  let maxCorr = 0;
   for (const it of items) {
     const beatId = beatByPack.get(it.pack_id);
-    if (beatId) itemsByBeat.set(beatId, (itemsByBeat.get(beatId) ?? 0) + 1);
-    if (it.event_id) clustered += 1;
-    if (it.corroboration > 0) {
-      maxCorr = Math.max(maxCorr, it.corroboration);
-      if (beatId) corrMaxByBeat.set(beatId, Math.max(corrMaxByBeat.get(beatId) ?? 0, it.corroboration));
-    }
-  }
-  for (const ev of events) {
-    eventsByBeat.set(ev.beat_id, (eventsByBeat.get(ev.beat_id) ?? 0) + 1);
+    if (!beatId) continue;
+    articlesByBeat.set(beatId, (articlesByBeat.get(beatId) ?? 0) + 1);
+    const prev = latestByBeat.get(beatId);
+    if (!prev || it.published_at > prev) latestByBeat.set(beatId, it.published_at);
   }
 
   const by_beat = beats
     .map((b) => ({
       beat_id: b.beat_id,
       label: b.label,
-      items: itemsByBeat.get(b.beat_id) ?? 0,
-      events: eventsByBeat.get(b.beat_id) ?? 0,
-      corroboration_max: corrMaxByBeat.get(b.beat_id) ?? 0,
+      articles: articlesByBeat.get(b.beat_id) ?? 0,
       last_computed_at: computedByBeat.get(b.beat_id) ?? null,
     }))
-    .filter((b) => b.items > 0 || b.events > 0)
-    .sort((a, b) => b.items - a.items);
+    .filter((b) => b.articles > 0)
+    .sort((a, b) => b.articles - a.articles);
 
-  const recent = items.slice(0, 25).map((it) => ({
+  const clusters = by_beat.map((b) => ({
+    cluster_id: b.beat_id,
+    beat_id: b.beat_id,
+    label: b.label,
+    articles: b.articles,
+    latest_at: latestByBeat.get(b.beat_id) ?? null,
+  }));
+
+  const recent = items.slice(0, 40).map((it) => ({
     beat_label: labelById.get(beatByPack.get(it.pack_id) ?? "") ?? "unknown",
     lede: it.lede,
     source: it.source,
     url: it.url,
-    event_id: it.event_id,
-    corroboration: it.corroboration,
     published_at: it.published_at,
+    lang: it.lang,
   }));
 
-  const clusters = events
-    .map((ev) => ({
-      event_id: ev.event_id,
-      beat_id: ev.beat_id,
-      title: ev.title,
-      source_count: ev.source_count,
-      beat_label: labelById.get(ev.beat_id) ?? "unknown",
-    }))
-    .sort((a, b) => b.source_count - a.source_count)
-    .slice(0, 40);
-
-  const top_corroborated = items
-    .filter((it) => it.corroboration > 0)
-    .sort((a, b) => b.corroboration - a.corroboration)
-    .slice(0, 20)
-    .map((it) => ({
-      beat_label: labelById.get(beatByPack.get(it.pack_id) ?? "") ?? "unknown",
-      lede: it.lede,
-      source: it.source,
-      url: it.url,
-      corroboration: it.corroboration,
-    }));
-
-  const dayMap = new Map<string, { items: number; events: number }>();
+  const dayMap = new Map<string, number>();
   for (const it of items) {
     const day = (it.published_at ?? "").slice(0, 10);
     if (!day) continue;
-    const cur = dayMap.get(day) ?? { items: 0, events: 0 };
-    cur.items += 1;
-    dayMap.set(day, cur);
+    dayMap.set(day, (dayMap.get(day) ?? 0) + 1);
   }
   const timeline = [...dayMap.entries()]
-    .map(([day, v]) => ({ day, items: v.items, events: v.events }))
+    .map(([day, articles]) => ({ day, articles }))
     .sort((a, b) => a.day.localeCompare(b.day));
 
   const lastIngestion = computedByBeat.size > 0
@@ -337,15 +304,13 @@ export async function getDashboardStats(db: SupabaseClient): Promise<DashboardSt
 
   return {
     beats: beats.length,
-    total_items: items.length,
-    total_events: events.length,
-    clustered_items: clustered,
-    max_corroboration: maxCorr,
+    total_articles: items.length,
+    total_clusters: clusters.length,
+    english_only: true,
     last_ingestion_at: lastIngestion,
     by_beat,
-    recent,
     clusters,
-    top_corroborated,
+    recent,
     timeline,
   };
 }

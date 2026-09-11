@@ -57,9 +57,23 @@ export const PRICE_CARD = {
   currency: "USD",
   unit: "micros",
   calls: {
-    poll_moved: "4000", // verified live: 402 quote on openbeat.vercel.app
+    /** Front door. Free to 100 calls a day, then near-free forever. */
+    resolve: "1000",
+    resolve_free_per_day: 100,
+    /** Empty is nearly free so hourly polling is rational. */
+    poll_empty: "500",
+    /** Verified live: 402 quote on the v0.1 origin. */
+    poll_moved: "4000",
+    /** Warm delta reuses the same pack path as a moved poll. */
+    delta_warm: "4000",
     delta_page: "4000",
-    briefing: "12000", // proposed (Phase 5)
+    /** On-demand query against the replica; cached 15 minutes. */
+    delta_cold: "20000",
+    /** The only call that spends a mid-tier model. */
+    briefing: "30000",
+    /** 24-hour hold, at 60 or 15 minute refresh. */
+    watch_60m: "150000",
+    watch_15m: "500000",
   },
   /** Placeholder — confirm actual buckets with the v0.1 implementation. */
   depth_multipliers: {

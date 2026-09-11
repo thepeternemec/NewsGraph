@@ -99,6 +99,8 @@ app.get("/v1/pricing", (c) =>
       depth_ceiling_days: 30,
       pack_max_items: 8,
       pack_token_estimate: 800,
+      daily_cap_micros: 500000,
+      distinct_beats_per_day: 50,
     },
     deposits: {
       manual: {

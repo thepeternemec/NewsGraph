@@ -73,7 +73,7 @@ export default function Dashboard() {
       <nav className="nav">
         <div className="nav-pill">
           <a className="nav-logo" href="/">
-            PLEIADES <i /> <small>dashboard</small>
+            PLEIADES <i /> <small>agent rail</small>
           </a>
           <span className="nav-links">
             {TABS.map((t) => (
@@ -98,7 +98,7 @@ export default function Dashboard() {
       <main className="wrap" style={{ paddingTop: 132, paddingBottom: 96 }}>
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24, marginBottom: 28 }}>
           <div>
-            <span className="sec-eyebrow">Live terminal · English only</span>
+            <span className="sec-eyebrow">Live graph · English only · one cluster per beat</span>
             <h1 style={{ margin: 0, fontSize: "clamp(30px, 4vw, 44px)", lineHeight: 1.05, letterSpacing: "-0.035em", color: "#fff", fontWeight: 600 }}>
               {TABS.find((t) => t.value === view)?.title}
             </h1>
@@ -112,15 +112,15 @@ export default function Dashboard() {
           <div className="metrics-grid">
             <div>
               <div className="metric-num">{stats?.beats ?? "…"}</div>
-              <div className="metric-label">Beats</div>
+              <div className="metric-label">Beats in the catalog</div>
             </div>
             <div>
               <div className="metric-num">{stats?.total_articles ?? "…"}</div>
-              <div className="metric-label">English articles</div>
+              <div className="metric-label">English articles inside packs</div>
             </div>
             <div>
               <div className="metric-num">{stats?.total_clusters ?? "…"}</div>
-              <div className="metric-label">Article clusters</div>
+              <div className="metric-label">Article clusters — one per beat</div>
             </div>
             <div>
               <div className="metric-num" style={{ fontFamily: "var(--font-mono)", fontSize: 22 }}>
@@ -129,6 +129,9 @@ export default function Dashboard() {
               <div className="metric-label">Last ingest</div>
             </div>
           </div>
+          <p className="hero-tiny" style={{ marginTop: 30 }}>
+            pack ≤8 items · ≤800 tokens · 30-day depth wall · poll empty $0.0005 · poll moved $0.004
+          </p>
         </div>
 
         {view === "signals" ? (
@@ -152,7 +155,7 @@ export default function Dashboard() {
             <div className="mock" style={{ marginTop: 24 }}>
               <div className="mock-bar">
                 <span className="mock-dots"><span /><span /><span /></span>
-                <span className="mock-title">latest signals</span>
+                <span className="mock-title">latest pack items · has this moved?</span>
                 <span className="mock-live">english</span>
               </div>
               <div className="mock-feed">
@@ -166,7 +169,7 @@ export default function Dashboard() {
                 {(stats?.recent ?? []).length === 0 && (
                   <div className="mock-row">
                     <span className="k">awaiting</span>
-                    <span className="v">Ingestion paused while the topic catalog is rebuilt.</span>
+                    <span className="v">Ingestion paused while the topic catalog is rebuilt for 100 beats.</span>
                     <span className="s">system</span>
                   </div>
                 )}
@@ -210,11 +213,12 @@ export default function Dashboard() {
             <div className="footer-brand-line">
               <span className="footer-co">PLEIADES</span>
               <span style={{ color: "var(--border-strong)" }}>/</span>
-              <span className="footer-address">live dashboard</span>
+              <span className="footer-address">agent rail · live graph</span>
             </div>
             <div className="footer-links">
               <a href="/">Home</a>
-              <a href="/#api">Contract</a>
+              <a href="/#contract">Contract</a>
+              <a href="/#pricing">Pricing</a>
               <a href="/#faq">FAQ</a>
             </div>
           </div>

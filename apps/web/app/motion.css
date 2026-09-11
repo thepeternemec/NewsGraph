@@ -1,8 +1,33 @@
 /* ══════════════════════════════════════════════════════════════════
    PLEIADES — motion layer
-   Soft aurora background (React Bits port) + scroll-linked reveals.
+   Soft aurora background (React Bits) + Lenis smooth scroll
+   + scroll-linked reveals and code-box animations.
    Additive only: no layout, colour or type changes.
    ══════════════════════════════════════════════════════════════════ */
+
+/* ── Lenis smooth scroll (same library reactbits.dev uses) ────────── */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis:not(.lenis-autoToggle).lenis-stopped {
+  overflow: clip;
+}
+.lenis [data-lenis-prevent],
+.lenis [data-lenis-prevent-wheel],
+.lenis [data-lenis-prevent-touch],
+.lenis [data-lenis-prevent-vertical],
+.lenis [data-lenis-prevent-horizontal] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+.lenis.lenis-autoToggle {
+  transition-property: overflow;
+  transition-duration: 1ms;
+  transition-behavior: allow-discrete;
+}
 
 /* ── Soft aurora: fixed, masked to the top of the viewport ────────── */
 .aurora-layer {
@@ -113,6 +138,7 @@ footer.site {
     main .scaffold .features > *,
     main .scaffold .faq > details,
     main .scaffold > .wrap > .mock,
+    main .scaffold > .wrap > .code,
     main .rail,
     main .cta-section > .wrap > * {
       animation: reveal-scroll linear both;
@@ -121,6 +147,92 @@ footer.site {
          size, so even the last block on the page finishes fading in before
          the document runs out of scroll. */
       animation-range: cover 0% cover 10%;
+    }
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Code boxes: print-in wipe, scanner sweep, hover response
+   ══════════════════════════════════════════════════════════════════ */
+.code {
+  position: relative;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+.code:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 18px 48px -26px rgba(255, 255, 255, 0.3);
+}
+
+/* The scanner band that tracks the print edge. */
+.code::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 38%;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(255, 255, 255, 0.045) 42%,
+    rgba(255, 255, 255, 0.13) 50%,
+    rgba(255, 255, 255, 0.045) 58%,
+    transparent 100%
+  );
+}
+
+@keyframes code-print {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes code-scan {
+  0% {
+    opacity: 0;
+    transform: translateY(-130%);
+  }
+  14% {
+    opacity: 1;
+  }
+  86% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(285%);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Scroll-linked: the code prints in as the box enters the viewport. */
+  @supports (animation-timeline: view()) {
+    main .scaffold .code > pre {
+      animation: code-print linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 12%;
+    }
+    main .scaffold .code::after {
+      animation: code-scan linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 12%;
+    }
+  }
+
+  /* Fallback: a one-shot typewriter when the reveal observer fires. */
+  @supports not (animation-timeline: view()) {
+    .code.reveal-in > pre {
+      animation: code-print 0.95s steps(26, end) both;
+    }
+    .code.reveal-in::after {
+      animation: code-scan 0.95s cubic-bezier(0.4, 0, 0.2, 1) both;
     }
   }
 }

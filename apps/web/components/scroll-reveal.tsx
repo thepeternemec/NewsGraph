@@ -18,6 +18,7 @@ const REVEAL_SELECTORS = [
   "main .scaffold .features > *",
   "main .scaffold .faq > details",
   "main .scaffold > .wrap > .mock",
+  "main .scaffold > .wrap > .code",
   "main .rail",
   "main .cta-section > .wrap > *",
 ];

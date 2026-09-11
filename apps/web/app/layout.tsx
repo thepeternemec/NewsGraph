@@ -3,6 +3,7 @@ import "./globals.css";
 import "./motion.css";
 import SoftAurora from "@/components/soft-aurora";
 import ScrollReveal from "@/components/scroll-reveal";
+import SmoothScroll from "@/components/smooth-scroll";
 
 export const metadata: Metadata = {
   title: "Pleiades — The real-time news API for AI agents",
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <SoftAurora />
         </div>
         <ScrollReveal />
+        <SmoothScroll />
         {children}
       </body>
     </html>

@@ -58,30 +58,35 @@ const VERBS = [
     asks: "A task in English",
     returns: "stable beat_id, warm first",
     price: "free → $0.001",
+    next: true,
   },
   {
     verb: "POST /poll",
     asks: "Has this beat moved?",
     returns: "moved:false, or a pack",
     price: "$0.0005 / $0.004",
+    next: false,
   },
   {
     verb: "POST /delta",
     asks: "What exactly, since the cursor?",
     returns: "items newer than high-water",
     price: "$0.004 / $0.02",
+    next: false,
   },
   {
     verb: "POST /brief",
     asks: "A human asked a question",
     returns: "3–6 cited sentences + pack",
     price: "$0.03",
+    next: true,
   },
   {
     verb: "POST /watch",
     asks: "Keep this beat warm",
     returns: "24-hour hold at 60 or 15 min",
     price: "$0.15 / $0.50 day",
+    next: true,
   },
 ];
 
@@ -182,16 +187,16 @@ const AUDIENCES = [
 ];
 
 const ROADMAP = [
-  { when: "Live", what: "Contract, 20 beats, English article clusters, catalog, poll, delta, webhooks, live terminal" },
-  { when: "Now", what: "Rebuilding topic queries for a 100-beat catalog; brief and watch verbs" },
-  { when: "Next", what: "WebSocket push, Telegram + Discord delivery, MCP server, public lead-time harness" },
-  { when: "Later", what: "x402 self-serve settlement, prepaid and invoice rails, desk export" },
+  { when: "Live", what: "Catalog, 20 seeded beats, English article clusters, poll, delta, webhooks, live terminal" },
+  { when: "Now", what: "Topic queries for a 100-beat catalog; resolve, receipts, the meter and prepaid keys" },
+  { when: "Next", what: "Brief and watch verbs, MCP server, WebSocket push, Telegram + Discord, lead-time harness" },
+  { when: "Later", what: "x402 self-serve settlement, ACP jobs, prepaid and invoice rails, desk export" },
 ];
 
 const FAQ = [
   {
     q: "What is actually live today?",
-    a: "The contract is live: catalog, tools, pricing, stats, poll, delta and webhooks. 20 beats are seeded, English-only, each with its own article cluster. Live ingestion is paused while the topic queries are rebuilt for a 100-beat catalog, so the terminal shows the current state of the graph rather than a moving one.",
+    a: "Live now: the catalog, agent tool schema, pricing, stats, poll, delta and webhooks, against 20 seeded English beats that each carry their own article cluster. Not live yet: resolve, receipts, brief, watch, the meter, the MCP server and x402 settlement. Live ingestion is paused while the topic queries are rebuilt for a 100-beat catalog, so the terminal shows the current state of the graph rather than a moving one.",
   },
   {
     q: "Is this a search engine?",
@@ -203,15 +208,15 @@ const FAQ = [
   },
   {
     q: "How fast is \u201cbefore the mainstream\u201d?",
-    a: "Beats refresh on a 60-minute target with a 90-minute freshness SLO, and market beats tighten to 5\u201315 minutes. Every item carries first_indexed_at next to published_at, so lead time is a field in the payload rather than a marketing line. The public comparison harness ships with the next milestone; until then the board above is illustrative.",
+    a: "Beats refresh on a 60-minute target with a 90-minute freshness SLO, and market beats are built to tighten to 5\u201315 minutes. Every item carries first_indexed_at next to published_at, so lead time is a field in the payload rather than a marketing line. The public comparison harness ships with the next milestone; until then the board above is illustrative.",
   },
   {
     q: "How do I get access?",
-    a: "Early access is operator-granted while x402 self-serve settlement is wired. Send a note with your use case — trading, newsroom, agent product — and you get a credential plus a starting balance. Every metered call returns a receipt you can reconcile in USD micros.",
+    a: "Polling is free while the meter is wired, so early access is operator-granted rather than self-serve. Send a note with your use case — trading, newsroom, agent product — and you get access plus a starting balance when billing turns on. Every metered call will then return a receipt you can reconcile in USD micros.",
   },
   {
     q: "Can my agent pay for itself?",
-    a: "That is the design. x402 takes a deposit in USDC on Base and calls draw against the balance off-chain, so a $0.0005 empty poll never touches the chain. A default daily cap of $0.50 and 50 distinct beats per identity keeps a looping tool call from becoming an incident.",
+    a: "That is the design, and it is not live yet. x402 will take a deposit in USDC on Base so calls draw against a balance off-chain, meaning a $0.0005 empty poll never touches the chain. A default daily cap of $0.50 and 50 distinct beats per identity keeps a looping tool call from becoming an incident.",
   },
 ];
 
@@ -310,7 +315,7 @@ export default function Home() {
               <a className="btn-ghost" href="#contract">Read the contract</a>
             </div>
             <p className="hero-tiny">
-              resolve free to 100/day · poll empty $0.0005 · poll moved $0.004 · no account on x402
+              price card · poll empty $0.0005 · poll moved $0.004 · resolve free to 100/day · x402 next
             </p>
 
             <div className="mock" style={{ marginTop: 46 }}>
@@ -337,7 +342,7 @@ export default function Home() {
                   <div className="mock-row">
                     <span className="k">01 resolve</span>
                     <span className="v">{`{"task": "due diligence on Nvidia China exposure"}`}</span>
-                    <span className="s">free</span>
+                    <span className="s">free · next</span>
                   </div>
                   <div className="mock-row">
                     <span className="k">→ beat_id</span>
@@ -493,7 +498,7 @@ export default function Home() {
               <h2 className="sec-title">Five verbs. One cursor.</h2>
               <p className="sec-sub">
                 Field names freeze after week three; identifiers in mono are exact. The agent rail
-                never serves bodies, and never serves content older than 30 days.
+                never serves bodies, and will never serve content older than 30 days.
               </p>
             </div>
 
@@ -507,7 +512,7 @@ export default function Home() {
                 <div className="mock-row" style={{ background: "var(--bg-raised)" }}>
                   <span className="k">verb</span>
                   <span className="v" style={{ color: "var(--text-muted)" }}>asks → returns</span>
-                  <span className="s" style={{ color: "var(--text-muted)" }}>price</span>
+                  <span className="s" style={{ color: "var(--text-muted)" }}>status · price</span>
                 </div>
                 {VERBS.map((v) => (
                   <div key={v.verb} className="mock-row">
@@ -517,13 +522,16 @@ export default function Home() {
                     <span className="v">
                       {v.asks} <span style={{ color: "var(--text-ghost)" }}>→</span> {v.returns}
                     </span>
-                    <span className="s">{v.price}</span>
+                    <span className="s">
+                      {v.next && <span style={{ color: "var(--text-ghost)" }}>next · </span>}
+                      {v.price}
+                    </span>
                   </div>
                 ))}
               </div>
               <div className="mock-foot">
-                <span>resolve · catalog · poll · delta ship today</span>
-                <span>brief · watch next</span>
+                <span>GET /v1/catalog · POST /v1/poll · POST /v1/delta ship today</span>
+                <span>resolve · brief · watch · receipts next</span>
                 <span style={{ marginLeft: "auto" }}>cursor is opaque, signed, beat-bound</span>
               </div>
             </div>
@@ -576,9 +584,9 @@ export default function Home() {
               <span className="sec-eyebrow">03 · Catalog</span>
               <h2 className="sec-title">Demand grows the graph. We do not guess it.</h2>
               <p className="sec-sub">
-                Warm beats are precomputed. Cold beats compute on demand and promote once two
-                distinct paying agents read them inside seven days. Buyer counts are published so
-                builders self-select toward packs that are already cheap and fast.
+                Warm beats will be precomputed; cold beats compute on demand and promote once two
+                distinct paying agents read them inside seven days. Publishing buyer counts is the
+                point — builders should self-select toward packs that are already cheap and fast.
               </p>
             </div>
 
@@ -595,13 +603,13 @@ export default function Home() {
                   <li>Cluster per beat, addressed by a stable beat_id</li>
                   <li>English only, so no translation drift in the stream</li>
                   <li>Newest first, with a cursor that never skips and never repeats</li>
-                  <li>A watch pins a beat warm even below the demand floor</li>
+                  <li>Every beat carries a warm or cold state you can route on</li>
                 </ul>
               </div>
               <div className="mock">
                 <div className="mock-bar">
                   <span className="mock-dots"><span /><span /><span /></span>
-                  <span className="mock-title">GET /v1/catalog · promotion runs hourly</span>
+                  <span className="mock-title">GET /v1/catalog · live</span>
                   <span className="mock-live">{stats?.total_clusters ?? 0} active</span>
                 </div>
                 <div className="mock-feed">
@@ -630,7 +638,7 @@ export default function Home() {
                 <div className="mock-foot">
                   <span>warm · precomputed</span>
                   <span>cold · on demand</span>
-                  <span style={{ marginLeft: "auto" }}>buyer counts published hourly</span>
+                  <span style={{ marginLeft: "auto" }}>promotion + buyer counts next</span>
                 </div>
               </div>
             </div>
@@ -701,6 +709,9 @@ export default function Home() {
                 </div>
               ))}
             </div>
+            <p className="hero-tiny" style={{ marginTop: 18 }}>
+              published ahead of the meter · calling is free today, billing turns on with the ledger
+            </p>
 
             <div className="showcase">
               <div>
@@ -708,12 +719,13 @@ export default function Home() {
                 <h3>A looping tool call is the default failure mode.</h3>
                 <p>
                   Not a theoretical risk — it is the first thing a misconfigured agent does. Caps
-                  ship on day one, so a runaway loop hits a wall instead of an invoice.
+                  ship with the meter, so a runaway loop hits a wall instead of an invoice.
                 </p>
                 <ul>
                   <li>Default daily ceiling: $0.50 per identity</li>
                   <li>50 distinct beats per day per identity</li>
-                  <li>30-day depth, 8 items, 800 tokens — enforced, not advisory</li>
+                  <li>8 items and 800 tokens are enforced in schema today</li>
+                  <li>The 30-day depth wall lands with the meter</li>
                 </ul>
               </div>
               <div className="code">
@@ -734,11 +746,13 @@ est. agent-day         $0.14
         <section className="scaffold" id="settlement">
           <div className="wrap">
             <div className="sec-head">
-              <span className="sec-eyebrow">06 · Settlement</span>
+              <span className="sec-eyebrow">
+                06 · Settlement <span className="eyebrow-tag" style={{ marginLeft: 8 }}>next</span>
+              </span>
               <h2 className="sec-title">402 is the onboarding.</h2>
               <p className="sec-sub">
                 An unprovisioned agent has to decide whether to pay without asking a human. The
-                challenge states what it is buying, what it costs, and where the schema lives.
+                challenge will state what it is buying, what it costs, and where the schema lives.
               </p>
             </div>
 
@@ -758,7 +772,7 @@ est. agent-day         $0.14
                 </ul>
               </div>
               <div className="code">
-                <div className="code-bar">HTTP 402 Payment Required</div>
+                <div className="code-bar">HTTP 402 Payment Required · next</div>
                 <pre>{`nonce: n_01JQ8ZK4M2X
 {
   "amount_micros": 4000,
@@ -782,10 +796,12 @@ est. agent-day         $0.14
         <section className="scaffold" id="receipts">
           <div className="wrap">
             <div className="sec-head">
-              <span className="sec-eyebrow">07 · Receipts</span>
+              <span className="sec-eyebrow">
+                07 · Receipts <span className="eyebrow-tag" style={{ marginLeft: 8 }}>next</span>
+              </span>
               <h2 className="sec-title">Prove payment. Never provenance.</h2>
               <p className="sec-sub">
-                GET /v1/receipts?since= is for reconciliation. When a model tells its user
+                GET /v1/receipts?since= will be the reconciliation view. When a model tells its user
                 something it learned from a pack, the URL it shows is the publisher&rsquo;s — never
                 ours.
               </p>
@@ -800,13 +816,13 @@ est. agent-day         $0.14
                   user should ever see.
                 </p>
                 <ul>
-                  <li>Every metered call returns a receipt_id reconcilable in USD micros</li>
+                  <li>Every metered call will return a receipt_id reconcilable in USD micros</li>
                   <li>Every item carries the publisher URL, source, timestamp and language</li>
                   <li>You are plumbing. Stay plumbing.</li>
                 </ul>
               </div>
               <div className="code">
-                <div className="code-bar">GET /v1/receipts?since=2026-09-09T00:00:00Z</div>
+                <div className="code-bar">GET /v1/receipts?since=2026-09-09T00:00:00Z · next</div>
                 <pre>{`receipt          call    beat              micros  settled
 r_01JQ8ZK4M2X    delta   b_dab9c000dca5      4000  07:00:12Z
 r_01JQ8ZK4N91    poll    b_bb964843350e       500  07:00:14Z
@@ -853,9 +869,9 @@ https://www.reuters.com/…`}</pre>
               <span className="sec-eyebrow">08 · Install</span>
               <h2 className="sec-title">Boring tools survive model churn.</h2>
               <p className="sec-sub">
-                OpenAI-compatible tool schema, and an MCP server that hits the same handlers. The
-                open spec publishes beat_id canonicalisation, the pack schema and the five verbs —
-                not the graph.
+                An OpenAI-compatible tool schema ships today; an MCP server that hits the same
+                handlers ships next. The open spec publishes beat_id canonicalisation, the pack
+                schema and the five verbs — not the graph.
               </p>
             </div>
 
@@ -864,32 +880,34 @@ https://www.reuters.com/…`}</pre>
                 <h3>Resolve once, poll forever.</h3>
                 <p>
                   A cron job, a wallet and two requests. If your agent can call a tool, it can hold
-                  a beat through a news cycle without a human in the loop.
+                  a beat through a news cycle without a human in the loop. Polling and delta work
+                  today; resolve joins them with the canonicalisation spec.
                 </p>
                 <ul>
-                  <li>Deterministic beats: the same task hashes to the same beat_id</li>
-                  <li>Cursor and receipt come back on every call — store both</li>
-                  <li>Deposit once over x402, then retry with the spend credential</li>
+                  <li>Deterministic beats: the same task will hash to the same beat_id</li>
+                  <li>Cursor comes back on every call — store it and never re-read</li>
+                  <li>8 items and 800 tokens, enforced by the pack schema</li>
                 </ul>
               </div>
               <div className="code">
-                <div className="code-bar">// cron: resolve once, poll forever</div>
-                <pre>{`curl -s $PLEIADES/v1/resolve \\
+                <div className="code-bar">// poll forever — live today</div>
+                <pre>{`curl -s $PLEIADES/v1/poll \\
+  -H "Content-Type: application/json" \\
+  -d '{"beat_id":"b_bb964843350e","cursor":null}'
+
+# resolve (task → beat_id) ships next
+curl -s $PLEIADES/v1/resolve \\
   -H "Content-Type: application/json" \\
   -d '{"task":"I am writing a due diligence
        memo on Nvidia China exposure"}'
 
-# 402 → deposit USDC on Base → retry
-curl -s $PLEIADES/v1/poll \\
-  -H "Content-Type: application/json" \\
-  -H "X-PAYMENT: $CREDENTIAL" \\
-  -d '{"beat_id":"b_bb964843350e","cursor":null}'`}</pre>
+# x402 deposit + X-PAYMENT credential land with the meter`}</pre>
               </div>
             </div>
 
             <div className="showcase flip" style={{ alignItems: "start" }}>
               <div className="code">
-                <div className="code-bar">GET /v1/tools · OpenAI-compatible</div>
+                <div className="code-bar">GET /v1/tools · live</div>
                 <pre>{`{
   "tools": [{
     "type": "function",
@@ -911,8 +929,9 @@ curl -s $PLEIADES/v1/poll \\
 }`}</pre>
               </div>
               <div className="code">
-                <div className="code-bar">MCP · same handlers</div>
-                <pre>{`{
+                <div className="code-bar">MCP · same handlers · next</div>
+                <pre>{`// not served yet — GET /v1/tools is live today
+{
   "mcpServers": {
     "pleiades": {
       "url": "https://pleiades.news/mcp",
@@ -926,15 +945,16 @@ curl -s $PLEIADES/v1/poll \\
             </div>
 
             <div className="code" style={{ marginTop: 40 }}>
-              <div className="code-bar">beat_id canonicalisation · public contract</div>
+              <div className="code-bar">beat_id canonicalisation · public spec</div>
               <pre>{`canonical = sorted(concept_uris).join("|")
           + "::" + sorted(topic_filters).join("|")
           + "::" + sorted(languages).join("|")
 
 beat_id = "b_" + sha256(canonical).hexdigest()[:12]
 
-# Changing this breaks every external implementation and
-# every stored cursor. Spec version bump only.`}</pre>
+# Published so external implementations can converge on it.
+# Not enforced yet: seeded beats carry literal ids until
+# resolve ships. Changing it later breaks stored cursors.`}</pre>
             </div>
           </div>
         </section>
@@ -1057,7 +1077,7 @@ beat_id = "b_" + sha256(canonical).hexdigest()[:12]
               <a className="btn-ghost" href="#contract">Read the contract</a>
             </div>
             <p className="cta-tiny">
-              spec v1 · no playground · operator-granted credentials · every call receipted
+              spec v1 · no playground · free while the meter is wired · receipts next
             </p>
           </div>
         </section>

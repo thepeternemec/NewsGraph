@@ -1,0 +1,136 @@
+/* ══════════════════════════════════════════════════════════════════
+   PLEIADES — motion layer
+   Soft aurora background (React Bits port) + scroll-linked reveals.
+   Additive only: no layout, colour or type changes.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Soft aurora: fixed, masked to the top of the viewport ────────── */
+.aurora-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: calc(0.6 * var(--aurora-fade, 1));
+  --aurora-shift: 0px;
+  --aurora-fade: 1;
+  /* The shader carries hue even with grey inputs, so the layer is flattened to
+     luminance to hold the black-and-white palette. Drop `grayscale(1)` and set
+     color2="#e100ff" on <SoftAurora /> for the upstream multi-colour aurora. */
+  filter: grayscale(1) brightness(1.45);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    rgba(0, 0, 0, 0.72) 30%,
+    transparent 66%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    rgba(0, 0, 0, 0.72) 30%,
+    transparent 66%
+  );
+}
+.aurora-layer .soft-aurora {
+  width: 100%;
+  height: 100%;
+  transform: translate3d(0, calc(var(--aurora-shift) * -1), 0);
+  will-change: transform;
+}
+
+/* Page content paints above the background layer. */
+main,
+footer.site {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Hero entrance (runs on load, not on scroll) ──────────────────── */
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Scroll reveal ────────────────────────────────────────────────── */
+@keyframes reveal-scroll {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero .eyebrow {
+    animation: hero-in 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  }
+  .hero h1 {
+    animation: hero-in 0.85s cubic-bezier(0.22, 0.61, 0.36, 1) 0.06s both;
+  }
+  .hero .lede {
+    animation: hero-in 0.85s cubic-bezier(0.22, 0.61, 0.36, 1) 0.14s both;
+  }
+  .hero .hero-cta {
+    animation: hero-in 0.85s cubic-bezier(0.22, 0.61, 0.36, 1) 0.2s both;
+  }
+  .hero .hero-tiny {
+    animation: hero-in 0.85s cubic-bezier(0.22, 0.61, 0.36, 1) 0.26s both;
+  }
+  .hero .mock {
+    animation: hero-in 1s cubic-bezier(0.22, 0.61, 0.36, 1) 0.32s both;
+  }
+
+  /* Fallback path, used only when scroll-driven animations are missing
+     (the component adds `.reveal-ready`, then `.reveal-in` on entry). */
+  .reveal-ready {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0);
+    transition:
+      opacity 0.75s cubic-bezier(0.22, 0.61, 0.36, 1) var(--reveal-delay, 0ms),
+      transform 0.75s cubic-bezier(0.22, 0.61, 0.36, 1) var(--reveal-delay, 0ms);
+  }
+  .reveal-ready.reveal-in {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Preferred path: the reveal is tied to scroll position by the browser. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    main .scaffold .sec-head,
+    main .scaffold .showcase > *,
+    main .metrics .metrics-grid > *,
+    main .scaffold .features > *,
+    main .scaffold .faq > details,
+    main .scaffold > .wrap > .mock,
+    main .rail,
+    main .cta-section > .wrap > * {
+      animation: reveal-scroll linear both;
+      animation-timeline: view();
+      /* 10% of the cover range is a short, fixed distance for every element
+         size, so even the last block on the page finishes fading in before
+         the document runs out of scroll. */
+      animation-range: cover 0% cover 10%;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-layer {
+    opacity: calc(0.5 * var(--aurora-fade, 1));
+  }
+  .aurora-layer .soft-aurora {
+    transform: none;
+    will-change: auto;
+  }
+}

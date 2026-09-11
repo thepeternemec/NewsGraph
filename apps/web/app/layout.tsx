@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./motion.css";
+import SoftAurora from "@/components/soft-aurora";
+import ScrollReveal from "@/components/scroll-reveal";
 
 export const metadata: Metadata = {
   title: "Pleiades — The real-time news API for AI agents",
@@ -10,7 +13,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <div className="aurora-layer" aria-hidden="true">
+          <SoftAurora />
+        </div>
+        <ScrollReveal />
+        {children}
+      </body>
     </html>
   );
 }

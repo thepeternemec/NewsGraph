@@ -157,7 +157,7 @@ const PRICES = [
 ];
 
 const SEGMENT_ROWS: Array<[string, string, string]> = [
-  ["Question", "What is happening on this?", "Everything, over time"],
+  ["Question", "What is happening on this?", "Full history"],
   ["Depth", "≤ 30 days", "2014 →"],
   ["Shape", "Pack · 8 ledes", "Bodies · ranges"],
   ["Cite", "Publisher URL", "Contracted feed"],
@@ -887,7 +887,7 @@ curl -s $PLEIADES/v1/poll \\
               </div>
             </div>
 
-            <div className="showcase flip">
+            <div className="showcase flip" style={{ alignItems: "start" }}>
               <div className="code">
                 <div className="code-bar">GET /v1/tools · OpenAI-compatible</div>
                 <pre>{`{

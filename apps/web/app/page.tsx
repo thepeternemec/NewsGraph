@@ -85,7 +85,7 @@ const VERBS = [
     verb: "POST /watch",
     asks: "Keep this beat warm",
     returns: "24-hour hold at 60 or 15 min",
-    price: "$0.15 / $0.50 day",
+    price: "$0.15–$0.50",
     next: true,
   },
 ];

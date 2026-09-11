@@ -1,0 +1,322 @@
+/* ══════════════════════════════════════════════════════════════════
+   PLEIADES — React Bits component motion layer
+   Split/Blur/TrueFocus/CountUp/Decrypt text, glare, magnet, spotlight,
+   tilt, click spark, pixel transition, gradual blur and grain.
+   All monochrome. Additive only — no layout or type changes.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Split Text ───────────────────────────────────────────────────── */
+/* The word wrapper must be an atomic inline box, otherwise the browser is
+   free to break a line between two character spans (e.g. "new / s"). */
+.split-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+.split-char {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+/* The split replaces the block-level hero entrance; running both at once
+   fades the whole line while the characters are still rising. */
+.hero h1.split-ready {
+  animation: none;
+}
+.hero .lede.blur-ready {
+  animation: none;
+}
+.split-ready .split-char {
+  opacity: 0;
+  transform: translate3d(0, 0.55em, 0);
+}
+.split-ready.split-in .split-char {
+  animation: split-char-in 0.9s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation-delay: calc(var(--i) * 18ms);
+}
+@keyframes split-char-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.55em, 0) rotate(5deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Blur Text ────────────────────────────────────────────────────── */
+.blur-word {
+  display: inline-block;
+  will-change: filter, opacity, transform;
+}
+.blur-ready .blur-word {
+  opacity: 0;
+  filter: blur(9px);
+  transform: translate3d(0, 0.3em, 0);
+}
+.blur-ready.blur-in .blur-word {
+  animation: blur-word-in 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation-delay: calc(var(--i) * 32ms);
+}
+@keyframes blur-word-in {
+  from {
+    opacity: 0;
+    filter: blur(9px);
+    transform: translate3d(0, 0.3em, 0);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+  }
+}
+
+/* ── True Focus ───────────────────────────────────────────────────── */
+.tf-word {
+  display: inline-block;
+  transition:
+    filter 0.5s ease,
+    opacity 0.5s ease;
+}
+.tf-ready .tf-word {
+  /* Kept gentle: the headline has to stay readable while it cycles. */
+  filter: blur(2.5px);
+  opacity: 0.55;
+}
+.tf-ready .tf-word.tf-focus {
+  filter: blur(0);
+  opacity: 1;
+}
+
+/* ── Scroll Float (section titles drift up as they enter) ─────────── */
+@keyframes scroll-float {
+  from {
+    transform: translate3d(0, 28px, 0) scale(0.985);
+  }
+  to {
+    transform: none;
+  }
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    main .scaffold .sec-title {
+      animation: scroll-float linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 12%;
+    }
+  }
+}
+
+/* ── Glare Hover (buttons) ────────────────────────────────────────── */
+.btn-primary,
+.btn-ghost,
+.nav-cta {
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary::after,
+.btn-ghost::after,
+.nav-cta::after {
+  content: "";
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: -60%;
+  width: 45%;
+  opacity: 0;
+  pointer-events: none;
+  transform: skewX(-18deg);
+}
+.btn-ghost::after {
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+}
+.btn-primary::after,
+.nav-cta::after {
+  background: linear-gradient(100deg, transparent, rgba(0, 0, 0, 0.18), transparent);
+}
+.btn-primary:hover::after,
+.btn-ghost:hover::after,
+.nav-cta:hover::after {
+  animation: glare-sweep 0.85s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+@keyframes glare-sweep {
+  0% {
+    left: -60%;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    left: 120%;
+    opacity: 0;
+  }
+}
+
+/* ── Spotlight Card ───────────────────────────────────────────────── */
+.spotlight {
+  position: relative;
+}
+.spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+  background: radial-gradient(
+    220px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.11),
+    transparent 72%
+  );
+}
+.spotlight:hover::before {
+  opacity: 1;
+}
+
+/* ── Tilted Card ──────────────────────────────────────────────────── */
+.tilt {
+  transform: perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transform-style: preserve-3d;
+  transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* The hero mock fades in on opacity only, so the tilt transform stays free.
+   (A keyframed transform with `both` fill would win over the inline one.) */
+@keyframes hero-in-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.hero .mock {
+  animation: hero-in-fade 0.9s ease-out 0.32s both;
+}
+
+/* ── Pixel Transition ─────────────────────────────────────────────── */
+.pixel-host {
+  position: relative;
+  overflow: hidden;
+}
+.pixel-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  pointer-events: none;
+}
+.pixel-overlay span {
+  background: rgba(255, 255, 255, 0.07);
+  opacity: 0;
+  transition: opacity 0.24s ease;
+  transition-delay: var(--d, 0ms);
+}
+.pixel-on .pixel-overlay span {
+  opacity: 1;
+}
+
+/* ── Click Spark ──────────────────────────────────────────────────── */
+.click-spark {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9998;
+  pointer-events: none;
+}
+
+/* ── Gradual Blur (content dissolves under the top edge) ──────────── */
+.gradual-blur {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 132px;
+  z-index: 40;
+  overflow: hidden;
+  pointer-events: none;
+}
+.gradual-blur span {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+.gradual-blur span:nth-child(1) {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 22%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 22%);
+}
+.gradual-blur span:nth-child(2) {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 42%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 42%);
+}
+.gradual-blur span:nth-child(3) {
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 62%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 62%);
+}
+.gradual-blur span:nth-child(4) {
+  backdrop-filter: blur(1.5px);
+  -webkit-backdrop-filter: blur(1.5px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 82%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 82%);
+}
+.gradual-blur span:nth-child(5) {
+  backdrop-filter: blur(0.6px);
+  -webkit-backdrop-filter: blur(0.6px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+}
+
+/* ── Noise (film grain) ───────────────────────────────────────────── */
+.noise-overlay {
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  z-index: 45;
+  opacity: 0.028;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  animation: noise-step 0.7s steps(4) infinite;
+  will-change: transform;
+}
+@keyframes noise-step {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  25% {
+    transform: translate3d(-3%, 2%, 0);
+  }
+  50% {
+    transform: translate3d(2%, -3%, 0);
+  }
+  75% {
+    transform: translate3d(-2%, -2%, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ── Reduced motion: the JS effects never initialise, so only the
+      CSS-only ones need switching off here. ───────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .noise-overlay {
+    animation: none;
+  }
+  main .scaffold .sec-title {
+    animation: none;
+  }
+  .btn-primary:hover::after,
+  .btn-ghost:hover::after,
+  .nav-cta:hover::after {
+    animation: none;
+  }
+}

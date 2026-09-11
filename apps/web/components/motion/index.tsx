@@ -56,7 +56,6 @@ export default function MotionEnhance() {
         hover.spotlightCard("main .feature, main .mock", "main #segmentation"),
         hover.tiltedCard("main .hero .mock"),
         hover.pixelTransition("main #segmentation .features .feature"),
-        hover.clickSpark(),
       ];
 
       teardown = () => teardowns.forEach((fn) => fn());

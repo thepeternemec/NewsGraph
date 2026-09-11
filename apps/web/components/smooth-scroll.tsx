@@ -11,6 +11,16 @@ import type LenisClass from "lenis";
  * `animation-timeline: view()` all keep working exactly as before.
  * `anchors: true` makes the in-page nav links glide to their section.
  *
+ * Tuning: this is Lenis's own recommendation — the `lerp` path, not
+ * `duration` + `easing`. A duration-based curve animates every wheel tick
+ * over its full length and reads as sluggish; `lerp` instead eases the
+ * current position toward the target every frame, so the page starts moving
+ * immediately and simply settles smoothly.
+ *
+ *   lerp 0.06 → floatier / longer glide
+ *   lerp 0.10 → Lenis default (used here)
+ *   lerp 0.16 → tighter, closer to native
+ *
  * Skipped entirely under `prefers-reduced-motion` (Lenis also respects it).
  */
 export default function SmoothScroll() {
@@ -34,10 +44,9 @@ export default function SmoothScroll() {
 
       lenis = new Lenis({
         autoRaf: true,
-        duration: 1.05,
-        // ease-out-expo: quick to respond, long and soft on the tail
-        easing: (t: number) => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t)),
+        lerp: 0.1,
         smoothWheel: true,
+        wheelMultiplier: 1,
         touchMultiplier: 1.6,
         anchors: true,
       });

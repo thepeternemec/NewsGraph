@@ -1,7 +1,7 @@
 /* ══════════════════════════════════════════════════════════════════
    PLEIADES — React Bits component motion layer
    Split/Blur/TrueFocus/CountUp/Decrypt text, glare, magnet, spotlight,
-   tilt, click spark, pixel transition, gradual blur and grain.
+   tilt, pixel transition, gradual blur and grain.
    All monochrome. Additive only — no layout or type changes.
    ══════════════════════════════════════════════════════════════════ */
 
@@ -213,16 +213,6 @@
 }
 .pixel-on .pixel-overlay span {
   opacity: 1;
-}
-
-/* ── Click Spark ──────────────────────────────────────────────────── */
-.click-spark {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 9998;
-  pointer-events: none;
 }
 
 /* ── Gradual Blur (content dissolves under the top edge) ──────────── */

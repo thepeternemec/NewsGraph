@@ -279,9 +279,9 @@ export default function Home() {
             PLEIADES <i /> <small>agent rail</small>
           </a>
           <span className="nav-links">
-            <a className="nav-link" href="#contract">Contract</a>
+            <a className="nav-link" href="#contract">How it works</a>
             <a className="nav-link" href="#pricing">Pricing</a>
-            <a className="nav-link" href="#install">Install</a>
+            <a className="nav-link" href="#install">API</a>
             <a className="nav-link" href="#faq">FAQ</a>
           </span>
           <a className="nav-cta" href="/dashboard">Open terminal</a>
@@ -293,35 +293,35 @@ export default function Home() {
         <section className="hero" id="top">
           <div className="wrap">
             <span className="eyebrow">
-              <span className="eyebrow-tag">Agent rail · v1</span>
-              Base USDC
+              <span className="eyebrow-tag">Live API</span>
+              {stats?.beats ?? 20} topics
               <span style={{ color: "var(--border-strong)" }}>·</span>
-              {stats?.beats ?? 20} beats live
+              150,000 publishers
               <span style={{ color: "var(--border-strong)" }}>·</span>
-              clusters <span style={{ color: "var(--text-secondary)" }}>{stats?.total_clusters ?? "\u2026"}</span>
+              English sources
             </span>
 
-            <h1>No monthly key. Pay when the agent wakes.</h1>
+            <h1>The real-time news API for AI agents.</h1>
             <p className="lede">
-              Metered access to a real-time news graph. An agent describes a task, receives a
-              stable beat, and from then on asks one question on a schedule: has this moved since
-              I last looked?
+              Pleiades watches 150,000 publishers around the clock and returns a short, cited brief
+              whenever a topic your agent follows changes. Your agent asks on a schedule; Pleiades
+              answers what moved and who reported it — at publish time, not at trend time.
             </p>
 
             <div className="hero-cta">
               <a className="btn-primary" href="/dashboard">
                 Open the live terminal <ArrowRight size={14} />
               </a>
-              <a className="btn-ghost" href="#contract">Read the contract</a>
+              <a className="btn-ghost" href="#install">Explore the API</a>
             </div>
             <p className="hero-tiny">
-              price card · poll empty $0.0005 · poll moved $0.004 · resolve free to 100/day · x402 next
+              English only · at most 8 items a call · no article bodies · free while we are in early access
             </p>
 
             <div className="mock" style={{ marginTop: 46 }}>
               <div className="mock-bar">
                 <span className="mock-dots"><span /><span /><span /></span>
-                <span className="mock-title">pleiades — cron: resolve once, poll forever</span>
+                <span className="mock-title">pleiades — your agent asks, pleiades answers</span>
                 <span className="mock-live">streaming</span>
               </div>
               <div className="mock-body">
@@ -392,24 +392,25 @@ export default function Home() {
             <div className="metrics-grid">
               <div>
                 <div className="metric-num">150,000</div>
-                <div className="metric-label">Publishers in the graph, queried continuously per beat</div>
+                <div className="metric-label">Publishers watched continuously — every story traced to its source</div>
               </div>
               <div>
                 <div className="metric-num">≤8</div>
-                <div className="metric-label">Items in a pack — bounded size means bounded cost</div>
+                <div className="metric-label">Stories per answer — small enough to read, cheap enough to ask hourly</div>
               </div>
               <div>
                 <div className="metric-num">≤800</div>
-                <div className="metric-label">p95 tokens per pack, so a poll fits a cheap context window</div>
+                <div className="metric-label">Tokens per answer, so a news check fits a small context window</div>
               </div>
               <div>
                 <div className="metric-num">30d</div>
-                <div className="metric-label">Hard depth on the agent rail — never older, not once</div>
+                <div className="metric-label">Depth on the agent API — recent by design, never a full archive</div>
               </div>
             </div>
             <p className="hero-tiny" style={{ marginTop: 34 }}>
-              live · {stats?.beats ?? "\u2026"} beats · {stats?.total_articles ?? "\u2026"} english articles ·{" "}
-              {stats?.total_clusters ?? "\u2026"} article clusters · updated {stamp || "\u2026"}
+              {stats?.total_articles
+                ? `live · ${stats.beats} topics · ${stats.total_articles} english articles · ${stats.total_clusters} article clusters · updated ${stamp || "\u2026"}`
+                : `${stats?.beats ?? 20} topics configured · ingestion paused while the topic catalog is rebuilt`}
             </p>
           </div>
         </section>
@@ -1069,15 +1070,15 @@ beat_id = "b_" + sha256(canonical).hexdigest()[:12]
           <div className="wrap">
             <h2 className="cta-title">Never miss the signal.</h2>
             <p className="cta-sub">
-              Resolve a beat, keep the cursor, and pay for the wake-up instead of the month. The
-              terminal is open.
+              Tell Pleiades which topics matter, then let your agent ask what changed. One API,
+              every story cited back to the publisher that broke it.
             </p>
             <div className="cta-row">
               <a className="btn-primary" href="/dashboard">Open the live terminal <ArrowRight size={14} /></a>
-              <a className="btn-ghost" href="#contract">Read the contract</a>
+              <a className="btn-ghost" href="#install">Explore the API</a>
             </div>
             <p className="cta-tiny">
-              spec v1 · no playground · free while the meter is wired · receipts next
+              English only · free while we are in early access · one API call at a time
             </p>
           </div>
         </section>
@@ -1092,15 +1093,15 @@ beat_id = "b_" + sha256(canonical).hexdigest()[:12]
               </div>
               <div className="footer-links">
                 <a href="/dashboard">Terminal</a>
-                <a href="#contract">Contract</a>
+                <a href="#contract">How it works</a>
                 <a href="#pricing">Pricing</a>
-                <a href="#install">Install</a>
+                <a href="#install">API</a>
                 <a href="#faq">FAQ</a>
               </div>
             </div>
             <div className="footer-row" style={{ marginTop: 10 }}>
               <span className="footer-address">
-                markets move on news in seconds · metered access to a real-time news graph
+                the real-time news API for AI agents · markets move on news in seconds
               </span>
             </div>
           </div>

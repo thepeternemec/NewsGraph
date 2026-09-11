@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Pleiades — The Real-Time News Terminal",
+  title: "Pleiades — The real-time news API for AI agents",
   description:
-    "Real-time news intelligence for traders, creators, agents and newsrooms. English coverage, article clusters per beat, bounded structured packs.",
+    "Pleiades watches 150,000 publishers and returns a short, cited brief whenever a topic your agent follows changes. English-language coverage, bounded packs, one API.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

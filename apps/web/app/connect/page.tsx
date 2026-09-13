@@ -35,7 +35,7 @@ export default function Connect() {
 <div className="page-heading">
 <div className="eyebrow">ONE CONNECTION. MORE CONTEXT.</div>
 <h1>Bring news to your agent.</h1>
-<p>Choose the way you work. Each connection uses the same topics, source links, and saved update positions.</p>
+<p>Choose the way you work. Each connection uses the same topics, source links, and saved update positions. Public connections open after the release check.</p>
 </div>
 <div className="integration-grid">{options.map(option => <button className="integration-card" aria-pressed={selected === option.id} key={option.id} onClick={() => { setSelected(option.id); setCopied(false); setResult(""); }}>
 <span className="integration-icon">

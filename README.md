@@ -4,7 +4,7 @@
 
 ## Customer news release
 
-The current branch adds the redesigned website, news explorer, connection guide, v2 article stream and hosted MCP implementation. See [NEWS-ROLLOUT.md](docs/NEWS-ROLLOUT.md) for exact deployment status, validation evidence, operating limits and rollout steps. The live migration and deployment are pending; do not infer production availability from this source tree.
+The current branch adds the redesigned website, news explorer, connection guide, v2 article stream and hosted MCP implementation. See [NEWS-ROLLOUT.md](docs/NEWS-ROLLOUT.md) for exact deployment status, validation evidence, operating limits and rollout steps. The migration and protected news backend are deployed and verified against real articles. Public access, recurring refresh and production homepage promotion await release approval.
 
 - Website: `/` · news explorer: `/dashboard` · connections: `/connect` · guide: `/docs`
 - Agent discovery: `/llms.txt` and `/skill.md`
@@ -20,7 +20,7 @@ npm run verify:local
 npm run dev:web
 ```
 
-`verify:local` uses deterministic test data and performs no external model or provider requests. The SDK is a workspace package, not an npm-published package. Production verification requires a configured source provider, the new database migration and deployed functions.
+`verify:local` uses deterministic test data and performs no external model or provider requests. The SDK is a workspace package, not an npm-published package. The three interfaces also pass against the protected deployed service; specific agent-host installation and paid model inference remain unverified.
 
 Supabase remains the backend and Vercel remains the intended website host. No existing v1 route or legacy worker is removed. The new `news-worker` is separately deployed and scheduled only after its first successful verification.
 
@@ -61,8 +61,9 @@ pleiades/
 | Bots (`apps/bots`) | 🚧 Telegram/Discord delivery adapters; loop wired in Phase 3 |
 | Webhooks | ✅ register/list/revoke on the API; HMAC-signed `pack.advanced` delivery from the worker |
 | Realtime push | ✅ `@pleiades/realtime` client (pack inserts → canonical packs); Supabase Realtime enabled on `packs` |
-| x402 / ACP / MCP | 📋 Phase 4 |
-| Web (`apps/web`) | ✅ vision landing page (Vercel) |
+| News MCP (`news-api`) | ✅ verified on the protected separate deployment; public-read release pending |
+| x402 / ACP | 📋 legacy roadmap |
+| Web (`apps/web`) | ✅ redesigned homepage, explorer and setup guide in Vercel preview |
 
 **Legacy:** the audited v0.1 service ("OpenBeat") is live at `https://openbeat.vercel.app`. This repo is the v0.2 codebase; see [docs/ROADMAP.md](docs/ROADMAP.md) for the cutover plan.
 

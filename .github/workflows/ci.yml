@@ -41,4 +41,4 @@ jobs:
           deno-version: v2.x
 
       - name: Type-check Edge Functions
-        run: deno check supabase/functions/api/index.ts supabase/functions/worker/index.ts supabase/functions/news-worker/index.ts
+        run: deno check --no-config --no-lock --node-modules-dir=none supabase/functions/api/index.ts supabase/functions/worker/index.ts supabase/functions/news-worker/index.ts supabase/functions/news-api/index.ts

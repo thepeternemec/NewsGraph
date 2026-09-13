@@ -1,4 +1,4 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://dnnoypytdfvsdenykooq.supabase.co/functions/v1/api";
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://dnnoypytdfvsdenykooq.supabase.co/functions/v1/news-api";
 export interface Topic {
     beat_id: string;
     label: string;

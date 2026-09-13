@@ -39,6 +39,7 @@ export interface GetArticlesParams {
     conceptUri?: string[];
     /** Secondary filter: exact-phrase keywords. Comma-separate for multi-term. */
     keyword?: string[];
+    keywordLoc?: "title" | "body";
     /** AND/OR logic for multiple keywords. */
     keywordOper?: "and" | "or";
     /** newsapi.ai category URIs (resolve via suggest(type:"categories")). */
@@ -73,6 +74,7 @@ export class NewsApiClient {
             apiKey: this.apiKey,
             conceptUri: params.conceptUri,
             keyword: params.keyword,
+            keywordLoc: params.keywordLoc,
             keywordOper: params.keywordOper,
             categoryUri: params.categoryUri,
             sourceUri: params.sourceUri,

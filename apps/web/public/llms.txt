@@ -3,5 +3,5 @@
 - Setup: https://www.pleiades.news/docs
 - Connections: https://www.pleiades.news/connect
 - Agent instructions: https://www.pleiades.news/skill.md
-- News API: https://dnnoypytdfvsdenykooq.supabase.co/functions/v1/api/v2/topics
-- MCP: https://dnnoypytdfvsdenykooq.supabase.co/functions/v1/api/mcp
+- News API: https://dnnoypytdfvsdenykooq.supabase.co/functions/v1/news-api/v2/topics
+- MCP: https://dnnoypytdfvsdenykooq.supabase.co/functions/v1/news-api/mcp

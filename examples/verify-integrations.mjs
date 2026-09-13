@@ -4,6 +4,18 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { PleiadesClient } from "../packages/sdk/dist/index.js";
 import { loadNewsTools, executeNewsTool } from "./openrouter-tools.mjs";
 const base = process.env.PLEIADES_API_BASE_URL ?? "http://127.0.0.1:8787";
+// Optional gateway credential for a protected staging deployment. The wrapper
+// only adds it to requests under this exact news endpoint.
+if (process.env.PLEIADES_API_TOKEN) {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (input, init) => {
+        const request = new Request(input, init);
+        if (request.url.startsWith(`${base}/`)) {
+            request.headers.set("Authorization", `Bearer ${process.env.PLEIADES_API_TOKEN}`);
+        }
+        return originalFetch(request);
+    };
+}
 const sdk = new PleiadesClient({ baseUrl: base });
 const topics = await sdk.topics("NVIDIA");
 assert(topics.topics.length);

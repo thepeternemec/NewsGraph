@@ -1,5 +1,5 @@
 import { loadNewsTools, executeNewsTool } from "./openrouter-tools.mjs";
-const base = process.env.PLEIADES_API_BASE_URL ?? "https://dnnoypytdfvsdenykooq.supabase.co/functions/v1/api";
+const base = process.env.PLEIADES_API_BASE_URL ?? "https://dnnoypytdfvsdenykooq.supabase.co/functions/v1/news-api";
 const key = process.env.OPENROUTER_API_KEY;
 const model = process.env.OPENROUTER_MODEL;
 if (!key || !model)

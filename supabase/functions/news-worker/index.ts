@@ -36,7 +36,11 @@ Deno.serve(async (req) => {
             const articles = [];
             let complete = false;
             for (let page = 1; page <= 5; page++) {
-                const batch = await client.getArticles({ apiKey, conceptUri: beat.concept_uris, keyword: beat.keywords, lang: ["eng"], dateStart: toProviderDate(start), dateEnd: toProviderDate(now), articlesPage: page });
+                // NVIDIA's broad concept feed exceeds the pilot allowance.
+                // Require a headline mention for this topic instead of marking
+                // an incomplete broad search as successfully refreshed.
+                const nvidia = beat.beat_id === "b_bb964843350e";
+                const batch = await client.getArticles({ apiKey, conceptUri: beat.concept_uris, keyword: nvidia ? ["Nvidia"] : beat.keywords, keywordLoc: nvidia ? "title" : undefined, lang: ["eng"], dateStart: toProviderDate(start), dateEnd: toProviderDate(now), articlesPage: page });
                 articles.push(...batch);
                 if (batch.length < 100) {
                     complete = true;

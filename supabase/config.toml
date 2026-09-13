@@ -427,3 +427,8 @@ verify_jwt = false
 enabled = true
 # Custom secret authentication is checked against news_worker_keys.
 verify_jwt = false
+
+[functions.news-api]
+enabled = true
+# Protected staging until public read access is approved.
+verify_jwt = true

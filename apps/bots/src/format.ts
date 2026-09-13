@@ -12,7 +12,7 @@ export function sentimentBadge(sentiment: number | null): string {
 export function formatItem(item: Item): string {
   const lines = [
     `${sentimentBadge(item.sentiment)}${item.lede}`,
-    `Source: ${item.source}${item.corroboration > 0 ? ` · corroborated by ${item.corroboration + 1} source(s)` : ""}`,
+    `Source: ${item.source}${(item.corroboration ?? 0) > 0 ? ` · corroborated by ${(item.corroboration ?? 0) + 1} source(s)` : ""}`,
     item.url,
   ];
   return lines.join("\n");

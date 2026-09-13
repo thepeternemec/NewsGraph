@@ -4,8 +4,8 @@ description: Find current news coverage, cite publishers, and retrieve changes s
 ---
 Use the Pleiades MCP connection or its public HTTPS API. This instruction file alone does not connect an account or install an MCP server.
 
-Base: https://dnnoypytdfvsdenykooq.supabase.co/functions/v1/api
-MCP: https://dnnoypytdfvsdenykooq.supabase.co/functions/v1/api/mcp
+Base: https://dnnoypytdfvsdenykooq.supabase.co/functions/v1/news-api
+MCP: https://dnnoypytdfvsdenykooq.supabase.co/functions/v1/news-api/mcp
 
 1. Find a supported topic with pleiades_topics (GET /v2/topics?q=...). Never invent a beat ID.
 2. Read latest articles with pleiades_news (GET /v2/news?beat_id=...). This establishes a baseline.

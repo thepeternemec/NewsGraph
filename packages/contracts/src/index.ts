@@ -5,3 +5,4 @@ export * from "./errors.js";
 export * from "./tools.js";
 export * from "./webhooks.js";
 export * from "./seed.js";
+export * from "./news.js";

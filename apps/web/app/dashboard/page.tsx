@@ -1,229 +1,154 @@
 "use client";
-
-import { useEffect, useState } from "react";
-import SignalField from "@/components/signal-field";
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "https://dnnoypytdfvsdenykooq.supabase.co/functions/v1/api";
-
-interface Stats {
-  beats: number;
-  total_articles: number;
-  total_clusters: number;
-  english_only: boolean;
-  last_ingestion_at: string | null;
-  clusters: Array<{
-    cluster_id: string;
-    beat_id: string;
-    label: string;
-    articles: number;
-    latest_at: string | null;
-  }>;
-  recent: Array<{
-    beat_label: string;
-    lede: string;
-    source: string;
-    url: string;
-    published_at: string;
-    lang: string | null;
-  }>;
-}
-
-type View = "signals" | "clusters";
-
-const TABS: Array<{ value: View; title: string }> = [
-  { value: "signals", title: "Signals" },
-  { value: "clusters", title: "Article clusters" },
-];
-
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowUpRight, BookOpen, Check, Compass, Link2, Plus, Radio, RefreshCw, Search, Star } from "lucide-react";
+import { Header } from "@/components/news/shell";
+import { api, dateLabel, type NewsItem, type NewsPage, type Topic } from "@/components/news/client";
 export default function Dashboard() {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [view, setView] = useState<View>("signals");
-  const [stamp, setStamp] = useState("");
-
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const res = await fetch(`${API_BASE}/v1/stats`, { cache: "no-store" });
-        if (res.ok && !cancelled) {
-          setStats((await res.json()) as Stats);
-          setStamp(new Date().toLocaleTimeString());
+    const [topics, setTopics] = useState<Topic[]>([]), [topic, setTopic] = useState(""), [query, setQuery] = useState(""), [following, setFollowing] = useState<string[]>([]), [view, setView] = useState("all"), [items, setItems] = useState<NewsItem[]>([]), [page, setPage] = useState<NewsPage | null>(null), [loading, setLoading] = useState(true), [error, setError] = useState(""), [localNote, setLocalNote] = useState("");
+    const generation = useRef(0);
+    useEffect(() => {
+        const controller = new AbortController();
+        const initialQuery = new URLSearchParams(window.location.search).get("q") ?? "";
+        setQuery(initialQuery);
+        try {
+            const saved = JSON.parse(localStorage.getItem("pleiades.following") ?? "[]");
+            if (Array.isArray(saved))
+                setFollowing(saved.filter(x => typeof x === "string"));
         }
-      } catch {
-        /* paused */
-      }
+        catch {
+            setLocalNote("Topic preferences could not be loaded on this device.");
+        }
+        api<{
+            topics: Topic[];
+        }>("/v2/topics", controller.signal).then(data => { setTopics(data.topics); const match = data.topics.find(t => t.label.toLowerCase() === initialQuery.toLowerCase()); setTopic(match?.beat_id ?? data.topics.find(t => t.label === "NVIDIA")?.beat_id ?? data.topics[0]?.beat_id ?? ""); if (!data.topics.length)
+            setLoading(false); }).catch(e => { if (e.name !== "AbortError") {
+            setError(e.message);
+            setLoading(false);
+        } });
+        return () => controller.abort();
+    }, []);
+    const load = useCallback(async (beatId: string, before?: string) => { if (!beatId)
+        return; const current = ++generation.current; setLoading(true); setError(""); try {
+        const next = await api<NewsPage>(`/v2/news?beat_id=${beatId}${before ? `&before=${encodeURIComponent(before)}` : ""}`);
+        if (current !== generation.current)
+            return;
+        setPage(next);
+        setItems(previous => before ? [...previous, ...next.items.filter(i => !previous.some(p => p.id === i.id))] : next.items);
     }
-    load();
-    const id = setInterval(load, 15000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, []);
-
-  const counts: Record<View, number | undefined> = {
-    signals: stats?.total_articles,
-    clusters: stats?.total_clusters,
-  };
-
-  return (
-    <>
-      <nav className="nav">
-        <div className="nav-pill">
-          <a className="nav-logo" href="/">
-            PLEIADES <i /> <small>agent rail</small>
-          </a>
-          <span className="nav-links">
-            {TABS.map((t) => (
-              <button
-                key={t.value}
-                type="button"
-                className="nav-link"
-                onClick={() => setView(t.value)}
-                style={view === t.value ? { color: "#fff", background: "rgba(255,255,255,0.06)" } : undefined}
-              >
-                {t.title}
-                <span style={{ marginLeft: 8, color: "var(--text-ghost)", fontFamily: "var(--font-mono)", fontSize: 10 }}>
-                  {counts[t.value] ?? "…"}
-                </span>
-              </button>
-            ))}
-          </span>
-          <a className="nav-cta" href="/">← Home</a>
-        </div>
-      </nav>
-
-      <main className="wrap" style={{ paddingTop: 132, paddingBottom: 96 }}>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24, marginBottom: 28 }}>
-          <div>
-            <span className="sec-eyebrow">Live graph · English only · one cluster per beat</span>
-            <h1 style={{ margin: 0, fontSize: "clamp(30px, 4vw, 44px)", lineHeight: 1.05, letterSpacing: "-0.035em", color: "#fff", fontWeight: 600 }}>
-              {TABS.find((t) => t.value === view)?.title}
-            </h1>
-          </div>
-          <span style={{ font: "11px var(--font-mono), monospace", color: "var(--text-ghost)" }}>
-            {stamp ? `updated ${stamp}` : "connecting…"}
-          </span>
-        </div>
-
-        <div className="metrics" style={{ borderTop: 0, paddingTop: 0 }}>
-          <div className="metrics-grid">
-            <div>
-              <div className="metric-num">{stats?.beats ?? "…"}</div>
-              <div className="metric-label">Beats in the catalog</div>
-            </div>
-            <div>
-              <div className="metric-num">{stats?.total_articles ?? "…"}</div>
-              <div className="metric-label">English articles inside packs</div>
-            </div>
-            <div>
-              <div className="metric-num">{stats?.total_clusters ?? "…"}</div>
-              <div className="metric-label">Article clusters — one per beat</div>
-            </div>
-            <div>
-              <div className="metric-num" style={{ fontFamily: "var(--font-mono)", fontSize: 22 }}>
-                {stats?.last_ingestion_at ? stats.last_ingestion_at.slice(11, 16) + "Z" : "—"}
-              </div>
-              <div className="metric-label">Last ingest</div>
-            </div>
-          </div>
-          <p className="hero-tiny" style={{ marginTop: 30 }}>
-            pack ≤8 items · ≤800 tokens · 30-day depth wall · poll empty $0.0005 · poll moved $0.004
-          </p>
-        </div>
-
-        {view === "signals" ? (
-          <>
-            <div className="mock" style={{ marginTop: 40 }}>
-              <div className="mock-bar">
-                <span className="mock-dots"><span /><span /><span /></span>
-                <span className="mock-title">signal field</span>
-                <span className="mock-live">streaming</span>
-              </div>
-              <SignalField
-                items={(stats?.recent ?? []).map((r) => ({
-                  beat_label: r.beat_label,
-                  lede: r.lede,
-                  source: r.source,
-                  url: r.url,
-                }))}
-              />
-            </div>
-
-            <div className="mock" style={{ marginTop: 24 }}>
-              <div className="mock-bar">
-                <span className="mock-dots"><span /><span /><span /></span>
-                <span className="mock-title">latest pack items · has this moved?</span>
-                <span className="mock-live">english</span>
-              </div>
-              <div className="mock-feed">
-                {(stats?.recent ?? []).slice(0, 24).map((it, i) => (
-                  <a key={i} className="mock-row" href={it.url} target="_blank" rel="noreferrer">
-                    <span className="k">{it.beat_label}</span>
-                    <span className="v">{it.lede}</span>
-                    <span className="s">{it.source}</span>
-                  </a>
-                ))}
-                {(stats?.recent ?? []).length === 0 && (
-                  <div className="mock-row">
-                    <span className="k">awaiting</span>
-                    <span className="v">Ingestion paused while the topic catalog is rebuilt for 100 beats.</span>
-                    <span className="s">system</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="mock" style={{ marginTop: 40 }}>
-            <div className="mock-bar">
-              <span className="mock-dots"><span /><span /><span /></span>
-              <span className="mock-title">article clusters · one per beat</span>
-              <span className="mock-live">{stats?.total_clusters ?? 0} active</span>
-            </div>
-            <div className="mock-feed">
-              {(stats?.clusters ?? []).map((c) => (
-                <div key={c.cluster_id} className="mock-row">
-                  <span className="k" title={c.cluster_id}>{c.label}</span>
-                  <span className="v">
-                    {c.articles} english article{c.articles === 1 ? "" : "s"}
-                  </span>
-                  <span className="s">
-                    {c.latest_at ? `latest ${c.latest_at.slice(11, 16)}Z` : "—"}
-                  </span>
-                </div>
-              ))}
-              {(stats?.clusters ?? []).length === 0 && (
-                <div className="mock-row">
-                  <span className="k">awaiting</span>
-                  <span className="v">No clusters yet — ingestion is paused.</span>
-                  <span className="s">system</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </main>
-
-      <footer className="site">
-        <div className="wrap">
-          <div className="footer-row">
-            <div className="footer-brand-line">
-              <span className="footer-co">PLEIADES</span>
-              <span style={{ color: "var(--border-strong)" }}>/</span>
-              <span className="footer-address">agent rail · live graph</span>
-            </div>
-            <div className="footer-links">
-              <a href="/">Home</a>
-              <a href="/#contract">Contract</a>
-              <a href="/#pricing">Pricing</a>
-              <a href="/#faq">FAQ</a>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </>
-  );
+    catch (e) {
+        if (current === generation.current)
+            setError(e instanceof Error ? e.message : "Unable to load news.");
+    }
+    finally {
+        if (current === generation.current)
+            setLoading(false);
+    } }, []);
+    useEffect(() => { setItems([]); setPage(null); void load(topic); return () => { generation.current++; }; }, [topic, load]);
+    function toggle(id: string) { const next = following.includes(id) ? following.filter(x => x !== id) : [...following, id]; setFollowing(next); try {
+        localStorage.setItem("pleiades.following", JSON.stringify(next));
+    }
+    catch {
+        setLocalNote("Your browser could not save these topics. They will reset when you leave.");
+    } }
+    const filtered = topics.filter(t => (view !== "following" || following.includes(t.beat_id)) && t.label.toLowerCase().includes(query.toLowerCase()));
+    useEffect(() => { if (filtered.length && !filtered.some(t => t.beat_id === topic))
+        setTopic(filtered[0].beat_id); }, [query, view, following, topics, topic]);
+    const selected = topics.find(t => t.beat_id === topic);
+    return <>
+<Header active="news"/>
+<div className="workspace">
+<aside className="sidebar" aria-label="News views">
+<div className="sidebar-label">YOUR WORKSPACE</div>
+<button className={view === "all" ? "active" : ""} onClick={() => setView("all")}>
+<Compass size={17}/> Explore news</button>
+<button className={view === "following" ? "active" : ""} onClick={() => setView("following")}>
+<Star size={17}/> Following <span className="sidebar-count">{following.length}</span>
+</button>
+<div className="sidebar-label">BUILD WITH PLEIADES</div>
+<Link href="/connect">
+<Link2 size={17}/> Connect an agent</Link>
+<Link href="/docs">
+<BookOpen size={17}/> Setup guide</Link>
+<small>Following topics is saved on this device. Connect an agent to run your own news checks.</small>
+</aside>
+ <main id="main" className="workspace-main">
+<div className="workspace-title">
+<div>
+<div className="eyebrow">YOUR WINDOW ON THE WORLD</div>
+<h1 style={{ marginTop: 12 }}>{view === "following" ? "Your topics" : "Explore the news"}</h1>
+<p>Fresh perspectives. Original sources. A little more context.</p>
+</div>
+<button className="button button-light button-small" disabled={loading || !topic} onClick={() => void load(topic)}>
+<RefreshCw size={15} className={loading ? "spin" : ""}/> Refresh</button>
+</div>
+ <div className="toolbar">
+<label className="search-box">
+<Search size={18}/>
+<input aria-label="Find a topic" placeholder="Find a company, industry, or topic…" value={query} onChange={e => setQuery(e.target.value)}/>
+</label>
+<label>
+<span className="sr-only">News topic</span>
+<select className="filter-select" value={filtered.some(t => t.beat_id === topic) ? topic : ""} onChange={e => setTopic(e.target.value)}>
+<option value="" disabled>{filtered.length ? "Choose a topic" : "No matching topics"}</option>{filtered.map(t => <option value={t.beat_id} key={t.beat_id}>{t.label}</option>)}</select>
+</label>
+</div>
+ {localNote && <p className="notice" role="status">{localNote}</p>}{error && <div className="notice" role="alert">{error} <button onClick={() => window.location.reload()} className="quiet-link">Retry</button>
+</div>}
+ <div className="news-layout">
+<div>
+<div className="news-list">
+<div className="list-heading">
+<span>{selected?.label ?? "Available coverage"}</span>
+<span>{loading ? "Checking coverage…" : `${items.length} articles loaded`}</span>
+</div>{!filtered.length && !loading ? <div className="empty-state">
+<Search size={28}/>
+<h2>{view === "following" ? "Find your first topic" : "No matching topics"}</h2>
+<p>{view === "following" ? "Use the plus button beside a topic to save it here." : "Try a company name or a broader subject."}</p>
+</div> : items.length ? items.map(item => <article className="news-card" key={item.id}>
+<div className="article-meta">
+<span className="source-icon">{item.source.slice(0, 1)}</span>
+<strong>{item.source}</strong>
+<span>·</span>
+<time dateTime={item.published_at}>{dateLabel(item.published_at)}</time>
+</div>
+<h2>
+<a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a>
+</h2>{item.excerpt && <p>{item.excerpt}</p>}<div className="article-foot">
+<span className="topic-tag">{selected?.label}</span>
+<a href={item.url} target="_blank" rel="noopener noreferrer">Read original <ArrowUpRight size={14}/>
+</a>
+</div>
+</article>) : <div className="empty-state">
+<Radio size={30}/>
+<h2>{loading ? "Checking the sources…" : "No recent coverage yet"}</h2>
+<p>{loading ? "Loading available articles for this topic." : "There are no articles available for this topic in the last 30 days. Try another topic or check again later."}</p>
+</div>}{filtered.length > 0 && page?.has_more && <div className="load-more">
+<button className="button button-light button-small" disabled={loading} onClick={() => void load(topic, page?.history_cursor ?? page?.cursor)}>Load earlier articles</button>
+</div>}</div>
+</div>
+ <aside className="news-aside">
+<section className="side-panel">
+<h2>Make it your news.</h2>
+<p>Save topics you want to come back to.</p>{(query ? filtered : topics.filter(t => ["NVIDIA", "EU AI Act", "Federal Reserve", "Taiwan semiconductors"].includes(t.label))).slice(0, 8).map(t => <div className="topic-option" key={t.beat_id}>
+<button onClick={() => { setTopic(t.beat_id); setQuery(""); setView("all"); }} style={{ width: "auto", border: 0, textAlign: "left", display: "block", color: "var(--ink)" }}>{t.label}</button>
+<button onClick={() => toggle(t.beat_id)} aria-label={`${following.includes(t.beat_id) ? "Unfollow" : "Follow"} ${t.label}`} aria-pressed={following.includes(t.beat_id)}>{following.includes(t.beat_id) ? <Check size={15}/> : <Plus size={15}/>}</button>
+</div>)}</section>
+<section className="side-panel">
+<span className="status-pill">
+<Radio size={13}/> {page?.freshness.status === "fresh" ? "Recently checked" : "Freshness status"}</span>
+<h2 style={{ marginTop: 16 }}>Know when we checked.</h2>
+<p>{page?.freshness.last_success_at ? `Last successful source check: ${dateLabel(page.freshness.last_success_at)}.` : "A successful source check has not been recorded yet."}</p>{page?.freshness.status === "stale" && <p>Coverage may be delayed. An empty update does not mean nothing happened.</p>}<Link className="quiet-link" href="/docs#freshness">About freshness ↗</Link>
+</section>
+<section className="side-panel" style={{ background: "var(--blue-soft)" }}>
+<h2>Give your agent a window.</h2>
+<p>Get this coverage inside the tools you already use.</p>
+<Link className="button button-small" href="/connect">Connect your agent <ArrowUpRight size={14}/>
+</Link>
+</section>
+</aside>
+</div>
+</main>
+</div>
+</>;
 }

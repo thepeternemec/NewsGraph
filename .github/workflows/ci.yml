@@ -25,6 +25,9 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: News integration contracts (local fixtures)
+        run: npm run verify:local
+
       - name: Supabase _shared drift check
         run: npm run check:supabase
 
@@ -38,4 +41,4 @@ jobs:
           deno-version: v2.x
 
       - name: Type-check Edge Functions
-        run: deno check supabase/functions/api/index.ts supabase/functions/worker/index.ts
+        run: deno check supabase/functions/api/index.ts supabase/functions/worker/index.ts supabase/functions/news-worker/index.ts

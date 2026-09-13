@@ -1,24 +1,28 @@
-# Pleiades ⭐
+# Pleiades
 
-**The real-time news terminal.** An AI-powered platform that delivers breaking insights to traders, content creators, AI agents, and media professionals — before stories reach the mainstream.
+**News for your agents.** Connect an agent, discover a supported topic, read source-linked articles, and retrieve changes from a saved cursor.
 
-Pleiades combines real-time news discovery with intelligent curation at scale. It functions like an agentic system: scanning thousands of sources 24/7, filtering vast volumes of information through [newsapi.ai](https://newsapi.ai), and delivering structured, actionable signals.
+## Customer news release
 
-> *"Markets move on news in seconds. Pleiades ensures you never miss the signal."*
+The current branch adds the redesigned website, news explorer, connection guide, v2 article stream and hosted MCP implementation. See [NEWS-ROLLOUT.md](docs/NEWS-ROLLOUT.md) for exact deployment status, validation evidence, operating limits and rollout steps. The live migration and deployment are pending; do not infer production availability from this source tree.
 
-## What Pleiades delivers
+- Website: `/` · news explorer: `/dashboard` · connections: `/connect` · guide: `/docs`
+- Agent discovery: `/llms.txt` and `/skill.md`
+- News API: `/v2/topics`, `/v2/news`, `/v2/changes`, `/v2/tools`
+- MCP: `/mcp` (standard Streamable HTTP)
+- [Integration examples](examples/README.md): TypeScript, MCP and OpenRouter tool calling
 
-- **Machine-speed, structured signals** — every item is deduplicated, event-clustered, sentiment-scored, and bounded to a token budget, ready to plug into algorithmic stacks or human workflows.
-- **Programmable delivery** — REST API, WebSocket, Telegram & Discord bots, MCP, and agent-native rails: [Virtuals ACP](https://github.com/Virtual-Protocol/agent-commerce-protocol) and [Coinbase x402](https://docs.cdp.coinbase.com/x402/welcome).
-- **Audience-native products** — trader alerts and market signals; creator briefs and early narratives; agent consumable feeds; editorial curation and publication workflows.
+```sh
+npm ci
+npm run build
+npm test
+npm run verify:local
+npm run dev:web
+```
 
-## Platform (decided)
+`verify:local` uses deterministic test data and performs no external model or provider requests. The SDK is a workspace package, not an npm-published package. Production verification requires a configured source provider, the new database migration and deployed functions.
 
-**Supabase is the backend platform** — Postgres, Edge Functions (API + ingestion
-cron), Realtime, Auth, Storage. **Vercel hosts only the website/docs.**
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) §6.
-
-**Live API:** `https://dnnoypytdfvsdenykooq.supabase.co/functions/v1/api`
+Supabase remains the backend and Vercel remains the intended website host. No existing v1 route or legacy worker is removed. The new `news-worker` is separately deployed and scheduled only after its first successful verification.
 
 ## Repository layout
 

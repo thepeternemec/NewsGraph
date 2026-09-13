@@ -422,3 +422,8 @@ verify_jwt = false
 enabled = true
 verify_jwt = false
 # schedule paused while the topic queries are rebuilt (newsapi.ai MCP + Topic Pages)
+
+[functions.news-worker]
+enabled = true
+# Custom secret authentication is checked against news_worker_keys.
+verify_jwt = false

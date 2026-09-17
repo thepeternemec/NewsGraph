@@ -1,109 +1,145 @@
 # NewsGraph — Architecture
 
-System design for the Real-Time News Terminal. Phase tags refer to [STATUS.md](STATUS.md).
+System design for NewsGraph. This document reflects the simplified system layout described in [STATUS.md](STATUS.md).
+
+---
 
 ## 1. Big picture
 
 ```
-                     ┌─────────────────────────────────────────────────────┐
-                     │              newsapi.ai (Event Registry)            │
-                     │  concept-URI search · event clusters · sentiment    │
-                     └───────────────────────┬─────────────────────────────┘
-                                             │ getArticles / getEvents
-                                             ▼
- ┌───────────────────────────────────────────────────────────────────────────────┐
- │  ingestion worker (Supabase Edge Function, cron) — Phase 1                     │
- │  scheduler → fetch per beat → dedupe → event linkage → LLM triage (Phase 5)    │
- │  → materialize pack (≤8 items, ≤800 tokens) → advance high-water mark          │
- └───────────────────────┬───────────────────────────────────────────────────────┘
-                         │ persist
-                         ▼
- ┌───────────────────────────────────────────────────────────────────────────────┐
- │  Supabase (Postgres) — the single system of record                            │
- │  beats · articles_raw · packs · pack_items · ledgers · receipts · webhooks    │
- │  Realtime broadcasts on pack insert (Phase 2 push)                             │
- └───────────────┬───────────────────────────────────┬───────────────────────────┘
-                 │ reads                             │ Realtime / poll
-                 ▼                                   ▼
- ┌──────────────────────────┐        ┌───────────────────────────────────────────┐
- │  REST API (Edge Function)│        │  Delivery edges                             │
- │  /v1/catalog /tools      │        │  · WS push via Supabase Realtime (Phase 2) │
- │  /v1/poll /delta (meter) │        │  · webhooks → customer CMS (Phase 2)       │
- │  /v1/pricing /openapi    │        │  · Telegram / Discord bots (Phase 3)       │
- │  Payment rails           │        │  · MCP server (Phase 4)                    │
- └──────────┬───────────────┘        │  · Virtuals ACP jobs & memos (Phase 4)     │
-            │                        └───────────────────────────────────────────┘
-            ▼
-   consumers: trading stacks · agents · creators · newsrooms
+                    ┌─────────────────────────────────────────────────────────┐
+                    │               newsapi.ai (Event Registry)               │
+                    │         concept-URI / keyword queries · articles        │
+                    └────────────────────────────┬────────────────────────────┘
+                                                 │ getArticles
+                                                 ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│  Ingestion Worker (Edge Function: news-worker)                                              │
+│  fetch per beat → normalizeArticles (lang="eng", clean URLs, dedup) → persistNews           │
+└────────────────────────────────────────┬────────────────────────────────────────────────────┘
+                                         │ append_news_articles (RPC)
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│  Supabase (Postgres) — single system of record                                              │
+│  beats · news_articles · news_ingestion_status · news_worker_keys                           │
+└────────────────────────────────────────┬────────────────────────────────────────────────────┘
+                                         │ typed reads (@newsgraph/db)
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│  REST API & MCP (Edge Function: news-api / canonical: apps/api)                             │
+│  GET /v2/topics · GET /v2/news · GET /v2/changes · GET /v2/tools · /mcp · /health           │
+│  (Read-only, no credentials required, no billing/metering)                                  │
+└────────────────────────────────────────┬────────────────────────────────────────────────────┘
+                                         │ JSON / MCP Protocol
+                                         ▼
+                 Consumers: AI agents · MCP clients · terminal apps · web UI
 ```
 
-## 2. Core invariants
+---
 
-1. **One provider query serves all subscribers of a beat.** Packs are materialized per beat, never per user request. Provider cost is `O(beats × refresh_rate)`, not `O(users)`. This is the economic foundation of the whole product.
-2. **One item format everywhere.** `@newsgraph/contracts` defines the item/pack schema; REST, WS, webhooks, bots, ACP memos, and briefings all reuse it. No surface invents its own shape.
-3. **Bounded tokens, amortized intelligence.** All enrichment (summaries, importance, signals, narratives) is computed once at pack time. Consumers never pay a per-user LLM cost.
-4. **Rail-agnostic billing.** Receipts carry a `rail` field; prepaid credentials, x402 USDC, and Stripe are interchangeable rails on the same ledger.
-5. **Pull is the reference protocol; push is an accelerator.** WS events and webhooks are delta pages with the same cursor/receipt semantics as REST poll/delta.
+## 2. Core principles & invariants
 
-## 3. Components
+1. **Read-only and open:** The news API requires no credentials, API keys, or metering rails for consumers. An agent queries a topic and gets back either "nothing moved" or cited stories.
+2. **Single source of truth for contracts:** `packages/contracts` defines wire shapes (Zod schemas and TypeScript types) shared across REST routes, MCP tools, and ingestion workers. No surface invents its own shape.
+3. **Canonical Node sources with generated Deno mirrors:** Canonical backend code is authored in Node (`packages/contracts`, `packages/db`, `apps/api`, `apps/worker`). Deno Edge Functions consume these via generated modules in `supabase/functions/_shared/`. CI strictly enforces that generated modules do not drift.
+4. **Clean separation of data access:** Database operations live exclusively in `packages/db` as pure functions accepting a Supabase client, keeping them testable against stubs.
 
-| Component | Repo path | Phase | Notes |
-|---|---|---|---|
-| Canonical schemas | `packages/contracts` | 0 | Zod schemas + types + error codes + seed catalog (20 beats) |
-| TypeScript SDK | `packages/sdk` | 0 | Typed client: catalog/poll/delta + webhook registration |
-| Realtime client | `packages/realtime` | 2 | `NewsGraphRealtime`: pack inserts → canonical packs via Supabase Realtime |
-| REST API (runtime) | `supabase/functions/api` | 0–4 | Hono on Supabase Edge Functions — the canonical deployment |
-| REST API (dev mirror) | `apps/api` | 0–4 | Same routes on Node for local dev; optional Vercel fallback |
-| Ingestion worker (runtime) | `supabase/functions/worker` | 1–2 | Scheduled Edge Function: newsapi.ai → packs → webhook delivery |
-| Ingestion worker (dev mirror) | `apps/worker` | 1–2 | Node dev surface; logic synced to the function |
-| Bots | `apps/bots` | 3 | Telegram/Discord delivery over the pack pipeline |
-| Landing site | `apps/web` | parallel | newsgraph.vercel.app — the only thing hosted on Vercel |
-| DB schema | `supabase/migrations` | 1 | packs, items, ledgers, receipts, webhooks |
-| Deno shared modules | `supabase/functions/_shared` | 0 | GENERATED — keep in sync via `npm run sync:supabase` |
-| Sync generator | `scripts/sync-supabase.mjs` | 0 | Single source of truth → Deno bundles |
-| CI | `.github/workflows/ci.yml` | 0 | build → test → drift check + deno check |
+---
 
-## 4. Data flow — one beat cycle
+## 3. System components
+
+| Component | Repository path | Role & Description |
+|---|---|---|
+| **Contracts** | `packages/contracts` | Canonical Zod schemas, TypeScript types, error codes, and seed topic catalog (`SEED_BEATS`). |
+| **Database layer** | `packages/db` | Typed read access over Supabase client (`getTopics`, `getNews`, `getChanges`, `resolveCursor`). |
+| **API (Canonical)** | `apps/api` | Canonical Hono application serving `/v2/*`, `/mcp`, and `/health`. Copied to `news-api` Edge Function. |
+| **Worker (Canonical)** | `apps/worker` | News normalization and persistence logic (`normalizeArticles`, `persistNews`, `NewsApiClient`). |
+| **Website** | `apps/web` | Public landing page, documentation, dashboard, and connection guides. |
+| **Edge Functions** | `supabase/functions/` | Deployed Edge Functions (`news-api`, `news-worker`) and generated shared code (`_shared/`). |
+| **Sync generator** | `scripts/sync-supabase.mjs` | Rewrites Node source modules to Deno-compatible imports in `_shared/`. |
+
+---
+
+## 4. Request path
+
+Clients interact with NewsGraph via REST endpoints or the Model Context Protocol (MCP):
 
 ```
-beat (catalog) ─ refresh_interval_minutes ─▶ scheduler
-  └▶ newsapi.ai getArticles(concept_uris, languages, window, skipDuplicates)
-  └▶ event linkage: getEvents → event_id + corroboration
-  └▶ normalize → articles_raw (upsert by provider URI)
-  └▶ pack generation: rank → ≤8 items → ≤800 token estimate → lede ≤320 chars
-  └▶ persist pack + advance high-water → new signed cursor
-  └▶ emit: Supabase Realtime / WS / webhook / bot push (Phase 2+)
+Client (Agent / Browser)
+   │
+   ▼
+Edge Function: news-api (Hono)
+   ├── GET /v2/topics    -> db.getTopics(client)
+   ├── GET /v2/news      -> db.getNews(client, { beat_id, limit, since })
+   ├── GET /v2/changes   -> db.getChanges(client, { beat_id, cursor, limit })
+   ├── GET /v2/tools     -> Tool descriptions (OpenAI format)
+   ├── ALL /mcp          -> MCP Server transport (list_tools, call_tool)
+   └── GET /health       -> Service health status
+   │
+   ▼
+packages/db (queries)
+   │
+   ▼
+Supabase Postgres
+   ├── beats
+   └── news_articles
 ```
 
-## 5. The ledger
+- **Validation:** Requests are validated against `packages/contracts` Zod schemas.
+- **Cursor-based changes:** `/v2/changes` accepts a signed cursor generated by `packages/db`. If no new articles have been published since the cursor, it reports nothing moved rather than returning duplicates.
 
-- `ledgers` — per-principal prepaid balance (micros, integer strings on the wire).
-- `receipts` — immutable: `receipt_id, agent_id, call, beat_id, amount_micros, rail, settled_at`.
-- Rails today: `manual` (legacy v0.1) · `prepaid` · later stablecoin, `acp`, `stripe`.
-- Metered calls require an idempotency key (Phase 0 fix F2): repeat of a settled key replays the original response and receipt, never re-debits.
+---
 
-## 6. Deployment — Supabase-first (decided)
+## 5. Ingestion pipeline
 
-**Supabase is the single platform** for the backend; **Vercel hosts only the website/docs**.
+The ingestion worker (`news-worker`) runs on a trigger/timer to sync upstream news:
 
-- **Postgres, Auth, Storage:** Supabase. Schema in `supabase/migrations` (`supabase db push`).
-- **REST API:** `supabase/functions/api` Edge Function (public, `verify_jwt = false`). `apps/api` remains a Node dev mirror — same routes, no drift (generated from canonical sources).
-- **Ingestion:** `supabase/functions/worker` Edge Function, scheduled via `[functions.worker] schedule` in `config.toml` (or pg_cron for per-beat fan-out later). One invocation = one pass; keep enrichment bounded to fit Edge Function limits.
-- **Push:** Supabase Realtime on `packs` inserts — no dedicated WebSocket server. A dedicated gateway is only a later option if fan-out outgrows Realtime plan caps.
-- **Web/docs:** `apps/web` (Next.js) on Vercel — the only Vercel usage. Legacy v0.1 origin `openbeat.vercel.app` stays until cutover.
-- **Deno shared code:** `supabase/functions/_shared` is generated by `npm run sync:supabase` from `packages/contracts` + `apps/{api,worker}/src` (single source of truth). CI fails on drift (`npm run check:supabase`) and type-checks the functions with Deno.
-- **Secrets:** `supabase secrets set NEWSAPI_API_KEY …`; `.env` for local Node dev (never committed).
+```
+Provider (newsapi.ai)
+   │
+   │ (batches of up to 100 articles)
+   ▼
+apps/worker/src/newsapi.ts (NewsApiClient)
+   │
+   ▼
+apps/worker/src/ingest-news.ts (normalizeArticles)
+   │  1. Language filter: retain only English (`lang === "eng"`)
+   │  2. URL sanitization: strip tracking parameters (`utm_*`, `fbclid`, `gclid`), remove hash
+   │  3. Deduplication: in-memory URL deduplication per batch
+   │  4. HTML stripping: strip tags from title and body excerpt
+   │  5. Bounds checking: limit title to 240 chars, excerpt to 320 chars, source to 120 chars
+   │  6. Timestamp sanity: drop articles older than 30 days or > 5 mins in future
+   ▼
+persistNews -> db.rpc("append_news_articles")
+   │
+   ▼
+Postgres `news_articles` table
+```
 
-## 7. Phase alignment
+Freshness status is tracked per beat in `news_ingestion_status` (`last_checked_at`, `last_success_at`, `last_error`).
 
-| Phase | Builds |
-|---|---|
-| 0 | contract fixes: idempotency, `/v1/pricing`, `/openapi.json`, clean resolve errors |
-| 1 | live ingestion: worker + Supabase → real packs behind poll/delta |
-| 2 | WebSocket + signed webhooks |
-| 3 | Telegram + Discord bots |
-| 4 | MCP server, self-serve payment rails, Virtuals ACP jobs/memos |
-| 5 | intelligence layer: triage, summaries, signals, narratives, briefings, self-service beats |
-| 6 | scale: multi-tenancy, self-service billing, catalog expansion, compliance |
+---
 
-Full detail in [STATUS.md](STATUS.md); contract sketches in [STATUS.md](STATUS.md).
+## 6. How contracts keep surfaces in agreement
+
+`packages/contracts` is the central contract repository:
+- **REST routes:** `apps/api/src/lib/news-routes.ts` validates incoming query parameters and formats outgoing responses using schemas from `packages/contracts`.
+- **MCP server:** `apps/api/src/lib/mcp.ts` defines tool definitions directly from the same contract schemas.
+- **Worker:** `apps/worker/src/newsapi.ts` maps provider responses into types consistent with the contract expectations.
+
+Because all surfaces import the same Zod definitions and TypeScript types, schema updates propagate immediately across the REST API, MCP tools, and ingestion worker.
+
+---
+
+## 7. Supabase Edge Functions & Drift prevention
+
+Supabase Edge Functions execute in the Deno runtime, whereas the core codebase uses Node.js and TypeScript project references.
+
+1. **Generated code:** `supabase/functions/_shared/` contains Deno-compatible versions of `packages/contracts`, `packages/db`, `apps/api/src/lib`, and `apps/worker/src`.
+2. **Synchronization:** `scripts/sync-supabase.mjs` transforms imports (e.g. replacing package imports with relative paths and specifying `npm:` specifiers).
+3. **Drift check in CI:**
+   ```bash
+   npm run check:supabase  # runs: node scripts/sync-supabase.mjs --check
+   ```
+   If any developer modifies Node source files without running `npm run sync:supabase`, CI fails immediately.
+4. **Type safety:** CI runs `deno check` on Edge Functions to ensure Deno-compatibility without runtime errors.

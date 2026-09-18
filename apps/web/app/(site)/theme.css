@@ -1012,3 +1012,62 @@
   color: #fff;
   border-color: var(--border-strong);
 }
+
+/* ── Article clusters (Sona Accordion) ───────────────────────────────
+   Collapsed by default, so the list reads as a list. The trigger carries the
+   same four facts the old header row did, in the same order. */
+.cluster-accordion {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+}
+.cluster-trigger {
+  padding: 9px 13px !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: 9px !important;
+  background: rgba(255, 255, 255, 0.015);
+  transition: background 0.15s, border-color 0.15s;
+}
+.cluster-trigger:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border-strong) !important;
+}
+.cluster-line {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr) auto 72px;
+  gap: 12px;
+  align-items: baseline;
+  width: 100%;
+}
+.cluster-line .c-tick {
+  font: 600 11.5px var(--font-mono), monospace;
+  color: #fff;
+}
+.cluster-line .c-name {
+  color: var(--text-secondary);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cluster-line .c-count {
+  color: var(--text-tertiary);
+  font: 10px var(--font-mono), monospace;
+}
+.cluster-line .c-status {
+  color: var(--text-muted);
+  font: 10px var(--font-mono), monospace;
+  text-align: right;
+}
+.cluster-body {
+  padding: 4px 0 2px;
+}
+.cluster-item .k {
+  min-width: 0;
+}
+@media (max-width: 720px) {
+  .cluster-line {
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+  }
+  .cluster-line .c-status { display: none; }
+}

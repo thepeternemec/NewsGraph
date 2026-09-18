@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /** Clusters to load articles for. One request each, so this stays small. */
 const CLUSTER_LIMIT = 10;
@@ -12,6 +12,12 @@ const CLUSTER_LIMIT = 10;
 const POPULAR = ["NVDA", "AAPL", "MSFT", "TSLA", "GOOGL", "AMZN", "META", "AMD", "NFLX", "AVGO"];
 import SignalField from "@/components/signal-field";
 import FluidTabs from "@/components/ui/fluid-tabs/fluid-tabs";
+import {
+  AccordionRoot,
+  AccordionItem,
+  AccordionItemTrigger,
+  AccordionItemContent,
+} from "@/components/ui/accordion/accordion";
 import { hhmm } from "@/components/site/content";
 
 const API_BASE =
@@ -344,36 +350,64 @@ export default function Dashboard() {
                 {clusters.length} of {topics.filter((t) => t.status !== "unavailable").length}
               </span>
             </div>
-            <div className="mock-feed">
+            {/* Sona UI's Accordion, already vendored and unused. Ten clusters were
+                rendered fully expanded, which is why the view was capped at ten —
+                collapsed, the list is scannable and the cap is about requests
+                rather than about room. */}
+            <AccordionRoot
+              // Clusters load after this mounts, and `defaultValue` is read once —
+              // without the key the first panel was always closed on a first visit.
+              key={`${view}-${clusters.length}`}
+              className="cluster-accordion"
+              variant="animated"
+              defaultValue={clusters[0] ? [clusters[0].topic.beat_id] : []}
+            >
               {clusters.map(({ topic, articles: items }) => (
-                <Fragment key={topic.beat_id}>
-                  <div className="mock-row cluster-head">
-                    <span className="k" title={topic.beat_id}>{topic.label}</span>
-                    <span className="v">
-                      {items.length} article{items.length === 1 ? "" : "s"}
-                    </span>
-                    <span className="s">{topic.status}</span>
-                  </div>
-                  {items.map((it) => (
-                    <a key={it.id} className="mock-row cluster-item" href={it.url} target="_blank" rel="noreferrer">
-                      <span className="k" />
-                      <span className="v">{it.title}</span>
-                      <span className="s">
-                        <span className="s-pub">{it.source}</span>
-                        {it.published_at ? <span className="s-time">{hhmm(it.published_at)}</span> : null}
+                <AccordionItem key={topic.beat_id} value={topic.beat_id}>
+                  <AccordionItemTrigger className="cluster-trigger">
+                    <span className="cluster-line">
+                      <span className="c-tick">{topic.ticker}</span>
+                      <span className="c-name">{topic.label}</span>
+                      <span className="c-count">
+                        {items.length} article{items.length === 1 ? "" : "s"}
                       </span>
-                    </a>
-                  ))}
-                </Fragment>
+                      <span className="c-status">{topic.status}</span>
+                    </span>
+                  </AccordionItemTrigger>
+                  <AccordionItemContent>
+                    <div className="cluster-body">
+                      {items.map((it) => (
+                        <a
+                          key={it.id}
+                          className="mock-row cluster-item"
+                          href={it.url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <span className="k" />
+                          <span className="v">{it.title}</span>
+                          <span className="s">
+                            <span className="s-pub">{it.source}</span>
+                            {it.published_at ? (
+                              <span className="s-time">{hhmm(it.published_at)}</span>
+                            ) : null}
+                          </span>
+                        </a>
+                      ))}
+                    </div>
+                  </AccordionItemContent>
+                </AccordionItem>
               ))}
-              {clusters.length === 0 && (
+            </AccordionRoot>
+            {clusters.length === 0 && (
+              <div className="mock-feed">
                 <div className="mock-row">
                   <span className="k">awaiting</span>
-                  <span className="v">No clusters yet — ingestion is paused.</span>
+                  <span className="v">No clusters yet — open this tab once ingestion has run.</span>
                   <span className="s">system</span>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
       </main>

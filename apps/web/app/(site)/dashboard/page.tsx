@@ -368,8 +368,11 @@ export default function Dashboard() {
                     <span className="cluster-line">
                       <span className="c-tick">{topic.ticker}</span>
                       <span className="c-name">{topic.label}</span>
+                      {/* The panel holds the latest few; the topic holds the rest.
+                          Showing only the page size made MU read "8 articles"
+                          when it has 459. */}
                       <span className="c-count">
-                        {items.length} article{items.length === 1 ? "" : "s"}
+                        {items.length} of {topic.article_count}
                       </span>
                       <span className="c-status">{topic.status}</span>
                     </span>

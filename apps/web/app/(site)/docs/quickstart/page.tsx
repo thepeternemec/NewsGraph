@@ -124,8 +124,9 @@ export default function DocsQuickstart() {
           because a brief that paraphrases is a brief that can be wrong
         </li>
         <li>
-          No freshness guarantee right now — nothing is scheduled, so topics go{" "}
-          <code>stale</code>. Check the <code>freshness</code> field before claiming currency
+          No promise that every topic is current. Ingestion runs every fifteen minutes, but a check
+          can fail — so read the <code>freshness</code> field rather than assuming, and report{" "}
+          <code>stale</code> or <code>unavailable</code> as exactly that rather than as an outage
         </li>
       </ul>
 

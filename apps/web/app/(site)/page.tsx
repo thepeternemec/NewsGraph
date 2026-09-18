@@ -582,9 +582,9 @@ export default function Home() {
               <div className="feature" style={{ minHeight: 210 }}>
                 <h3 className="feature-title">The catalog is open</h3>
                 <p className="feature-desc">
-                  It holds four topics today — NVIDIA, Bitcoin, Tesla and the oil price — and
-                  the list is deliberately open. Proposing one takes an issue and no code at all,
-                  which makes it the cheapest real contribution here.
+                  540 US-listed equities today, all with coverage, and the list is
+                  deliberately open. Proposing a ticker takes an issue and no code at all, which
+                  makes it the cheapest real contribution here.
                 </p>
                 <span className="feature-tag">propose a topic</span>
               </div>

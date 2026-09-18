@@ -64,7 +64,7 @@ export const FAQ = [
   },
   {
     q: "Do I get article bodies?",
-    a: "Never. No body field exists at any price. A pack holds at most 8 items with ledes capped at 320 characters, a bounded token estimate, and publisher URL, source, timestamp, language, concepts and sentiment on every item. You get the signal and the citation; you fetch the body yourself.",
+    a: "Never. No body field exists at any price. A page holds at most 8 items, each with a headline, a link that resolves to the article, the publisher's name and the time it was published. You get the signal and the citation; you fetch the story yourself.",
   },
   {
     q: "How fast is before the mainstream?",

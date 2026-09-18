@@ -70,9 +70,9 @@ export default function Pricing() {
               </tbody>
             </table>
             <p className="hero-tiny" style={{ marginTop: 16 }}>
-              Four topics exist today: NVIDIA, Bitcoin, Tesla and the oil price. A topic reports
-              unavailable until it has been ingested once, so read the status field rather than
-              assuming an outage.
+              540 US-listed equities, each refreshed every fifteen minutes. A topic reports
+              unavailable until it has been ingested once, and `status` says whether the check
+              succeeded — read `article_count` and `recent_12h` to see what is actually there.
             </p>
           </div>
         </section>

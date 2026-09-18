@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { NEWS_TOOLS } from "@newsgraph/contracts";
-import { NewsError, topics, newsPage, TOPIC_PAGE_DEFAULT, TOPIC_PAGE_MAX } from "./news.js";
+import { NewsError, topics, newsPage, brief, TOPIC_PAGE_DEFAULT, TOPIC_PAGE_MAX } from "./news.js";
 export const newsRoutes = new Hono();
 newsRoutes.onError((error, c) => { if (error instanceof NewsError)
     return c.json({ error: { code: error.code, message: error.message } }, error.status as 400 | 404 | 410 | 503); console.error("news request failed", error.name); return c.json({ error: { code: "service_unavailable", message: "News is temporarily unavailable." } }, 503); });
@@ -9,6 +9,12 @@ const clamp = (raw: string | undefined, fallback: number, max: number) => {
     const n = Number.parseInt(raw ?? "", 10);
     return Number.isFinite(n) && n >= 0 ? Math.min(n, max) : fallback;
 };
+newsRoutes.get("/brief", async (c) => {
+    const beatId = (c.req.query("beat_id") ?? "").trim();
+    if (!beatId)
+        return c.json({ error: "invalid_request", detail: "beat_id is required" }, 400);
+    return c.json(await brief(beatId, c.req.query("cursor") || undefined, c.req.query("history") === "true"));
+});
 newsRoutes.get("/topics", async (c) => {
     const limit = clamp(c.req.query("limit"), TOPIC_PAGE_DEFAULT, TOPIC_PAGE_MAX) || TOPIC_PAGE_DEFAULT;
     const offset = clamp(c.req.query("offset"), 0, Number.MAX_SAFE_INTEGER);
@@ -28,6 +34,10 @@ export async function callNewsTool(name: string, args: unknown) {
     if (name === "newsgraph_news") {
         const input = z.object({ beat_id: z.string() }).strict().parse(args);
         return newsPage(input.beat_id);
+    }
+    if (name === "newsgraph_brief") {
+        const input = z.object({ beat_id: z.string() }).strict().parse(args);
+        return brief(input.beat_id);
     }
     if (name === "newsgraph_changes") {
         const input = z.object({ beat_id: z.string(), cursor: z.string().max(2048) }).strict().parse(args);

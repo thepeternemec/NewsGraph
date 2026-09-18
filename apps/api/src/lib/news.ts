@@ -120,3 +120,94 @@ export async function newsPage(beatId: string, cursor?: string, history = false)
     const nextSeq = isChange ? bounded.items.at(-1)?.id ?? sequence ?? "0" : rows[0]?.id ?? "0";
     return { ...bounded, cursor: await signCursor(beatId, history ? (bounded.items.at(-1)?.id ?? sequence ?? "0") : nextSeq, history ? "history" : "changes"), history_cursor: await signCursor(beatId, bounded.items.at(-1)?.id ?? sequence ?? "0", "history"), freshness: freshness(state?.last_success_at ?? null, topicById(beatId).freshness_slo_minutes) };
 }
+
+/** How many headlines a brief carries. Three is a sentence's worth of news. */
+export const BRIEF_ITEMS = 3;
+
+export interface BriefItem {
+    lede: string;
+    source: string;
+    url: string;
+    published_at: string;
+    first_indexed_at: string;
+}
+
+/**
+ * Render a brief as text.
+ *
+ * Pure and exported so the property that matters can be asserted: the output
+ * contains every lede verbatim and nothing that was not in the input. The
+ * moment someone adds a connective or a conclusion, that test fails — which is
+ * the point, because a synthesised brief can be wrong while reading well.
+ */
+export function renderBrief(label: string, items: BriefItem[]): string {
+    if (!items.length) return `${label} — nothing moved.`;
+    const lines = items.map((item, i) => `${i + 1}. ${item.lede} (${item.source}, ${item.published_at.slice(11, 16)}Z)`);
+    return `${label} — ${items.length} ${items.length === 1 ? "story" : "stories"}\n${lines.join("\n")}`;
+}
+
+/**
+ * A brief: the top few headlines, verbatim, with who published them and when.
+ *
+ * Deliberately **not** a summary. Nothing here is rewritten, reordered or
+ * inferred — every word is the publisher's lede or a label we added. A brief
+ * that paraphrases is a brief that can be wrong while looking authoritative,
+ * and the rule in this repo is that we cite rather than summarise.
+ *
+ * `text` is the same facts concatenated for convenience. It is a rendering, not
+ * a synthesis: if you diff it against `items` you will find nothing extra.
+ */
+export async function brief(beatId: string, cursor?: string, history = false) {
+    const topic = topicById(beatId);
+    const sql = db();
+    const sequence = cursor ? await readCursor(cursor, beatId, history ? "history" : "changes") : null;
+    const since = new Date(Date.now() - 30 * 86400000).toISOString();
+    const ascending = !!cursor && !history;
+    const direction = ascending ? sql`asc` : sql`desc`;
+    const boundary = sequence
+        ? history ? sql`and id < ${sequence}::bigint` : sql`and id > ${sequence}::bigint`
+        : sql``;
+    let rows: NewsArticle[];
+    let state: { last_success_at: string | null } | undefined;
+    try {
+        const results = await Promise.all([
+            sql`select id::text, beat_id, title, excerpt, url, source, published_at, first_indexed_at
+                from news_articles
+                where beat_id = ${beatId} and published_at >= ${since}
+                ${boundary}
+                order by id ${direction}
+                limit ${BRIEF_ITEMS + 1}`,
+            sql`select last_success_at from news_ingestion_status where beat_id = ${beatId} limit 1`,
+        ]);
+        rows = ((results[0] ?? []) as unknown as NewsArticle[]).slice(0, BRIEF_ITEMS);
+        state = (results[1] as unknown as Array<{ last_success_at: string | null }>)[0];
+    }
+    catch {
+        throw new NewsError("service_unavailable", "Coverage could not be loaded. Please try again shortly.", 503);
+    }
+
+    const items: BriefItem[] = (rows ?? []).map((row: NewsArticle) => ({
+        lede: row.title,
+        source: row.source,
+        url: row.url,
+        published_at: row.published_at,
+        // Lead time as a field, so "before the mainstream" stays measurable.
+        first_indexed_at: row.first_indexed_at,
+    }));
+    const isChange = !!cursor && !history;
+    const nextSeq = isChange ? (rows.at(-1)?.id ?? sequence ?? "0") : (rows[0]?.id ?? "0");
+
+    return {
+        beat_id: beatId,
+        ticker: topic.ticker,
+        label: topic.label,
+        generated_at: new Date().toISOString(),
+        ...freshness(state?.last_success_at ?? null, topic.freshness_slo_minutes),
+        count: items.length,
+        items,
+        // Assembled, never written. See the note above.
+        text: renderBrief(topic.label, items),
+        cursor: await signCursor(beatId, String(nextSeq), "changes"),
+        history_cursor: await signCursor(beatId, String(rows.at(-1)?.id ?? sequence ?? "0"), "history"),
+    };
+}

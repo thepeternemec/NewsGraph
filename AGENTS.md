@@ -54,6 +54,10 @@ Base: `https://newsgraph.vercel.app/api`
 | `POST /mcp` | MCP, Streamable HTTP |
 | `GET /health` | Liveness |
 
+The same four calls are published as tools, for frameworks that would rather be handed a schema
+than a URL: `newsgraph_topics`, `newsgraph_news`, `newsgraph_changes`, `newsgraph_brief`. They
+appear in `GET /v2/tools` and over MCP.
+
 **No credential is required.** A key is optional and only raises the rate limit — anonymous
 callers get 120 requests a minute, a key gets 1200. There is no billing.
 

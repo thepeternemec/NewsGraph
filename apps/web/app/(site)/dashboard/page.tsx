@@ -67,7 +67,9 @@ export default function Dashboard() {
     let cancelled = false;
     async function load() {
       try {
-        const res = await fetch(`${API_BASE}/v2/topics`, { cache: "no-store" });
+        // One request for the whole catalog: the metrics sum across it and the
+        // search filters it locally. A paging client would use the default 100.
+        const res = await fetch(`${API_BASE}/v2/topics?limit=1000`, { cache: "no-store" });
         if (!res.ok || cancelled) return;
         const data = (await res.json()) as { topics?: Topic[] };
         const list = data.topics ?? [];

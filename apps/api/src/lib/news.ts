@@ -39,7 +39,12 @@ export function db() { if (!hasDatabaseEnv())
 export function topicById(id: string) { const topic = SEED_BEATS.find(t => t.beat_id === id); if (!topic)
     throw new NewsError("unknown_topic", "Choose a supported topic from newsgraph_topics.", 404); return topic; }
 export function freshness(last: string | null, minutes: number) { return { status: !last ? "unavailable" : Date.now() - Date.parse(last) > minutes * 60000 ? "stale" : "fresh", last_success_at: last }; }
-export async function topics(query = "") {
+/** Bounds on the catalog page. A default of 100 keeps a naive client honest;
+ *  a high ceiling lets one that genuinely needs the whole catalog ask once. */
+export const TOPIC_PAGE_DEFAULT = 100;
+export const TOPIC_PAGE_MAX = 1000;
+
+export async function topics(query = "", limit = TOPIC_PAGE_DEFAULT, offset = 0) {
     type StatusRow = { beat_id: string; last_success_at: string | null; last_checked_at: string | null };
     type CountRow = { beat_id: string; total: number; recent: number };
     let statusRows: StatusRow[];
@@ -60,10 +65,17 @@ export async function topics(query = "") {
         throw new NewsError("service_unavailable", "News storage is not ready.", 503);
     }
     const terms = query.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w => w.length >= 2 && !new Set(["the", "and", "news", "about", "latest", "follow", "keep", "with", "what", "changes", "tell"]).has(w));
-    return { topics: SEED_BEATS.filter(t => !terms.length || terms.some(word => t.label.toLowerCase().includes(word))).map(t => { const state = statusRows.find(s => s.beat_id === t.beat_id); const counts = countRows.find((c) => c.beat_id === t.beat_id);
+    const matched = SEED_BEATS.filter(t => !terms.length || terms.some(word => t.label.toLowerCase().includes(word)));
+    const page = matched.slice(offset, offset + limit);
+    const rows = page.map(t => { const state = statusRows.find(s => s.beat_id === t.beat_id); const counts = countRows.find((c) => c.beat_id === t.beat_id);
         return { beat_id: t.beat_id, label: t.label, ticker: t.ticker,
             article_count: counts?.total ?? 0,
-            recent_12h: counts?.recent ?? 0, ...freshness(state?.last_success_at ?? null, t.freshness_slo_minutes), last_checked_at: state?.last_checked_at ?? null }; }) };
+            recent_12h: counts?.recent ?? 0, ...freshness(state?.last_success_at ?? null, t.freshness_slo_minutes), last_checked_at: state?.last_checked_at ?? null }; });
+    const consumed = offset + rows.length;
+    // `total` is the size of the match, not of the page: a client should be able
+    // to report "540 topics" without walking every page to count them.
+    return { topics: rows, total: matched.length, limit, offset, has_more: consumed < matched.length,
+        next_offset: consumed < matched.length ? consumed : null };
 }
 export function boundedPage<T>(rows: T[], budget = 1800) { const items: T[] = []; let tokens = 0; for (const row of rows.slice(0, 8)) {
     const size = Math.ceil(new TextEncoder().encode(JSON.stringify(row)).length / 3);

@@ -38,18 +38,28 @@ on serverless.
 Vercel Cron (*/15) → /api/cron/ingest → runIngestion()
         ├ one **Google News RSS** query per topic, quoted keywords OR'd,
         │   `when:1d`, English, four in flight at a time
+        ├ drop results whose headline does not name the topic  ← see below
         ├ normalise: strip the " - Publisher" suffix, cap title 240
         └ append_news_articles(topic, batch)  ← one transaction per topic
 
 **Google News is the default provider and it is free** — key-less, no quota.
 `NEWSGRAPH_PROVIDER=newsapi` switches to the paid provider, which also supports
-batching five topics per call (148 topics in 30 calls instead of 148) and
+batching five topics per call (five topics per request rather than one) and
 returns excerpts. The trade is real and deliberate: Google costs nothing but
 gives a redirect URL and no excerpt.
 
-Google matches the whole article, not just the headline, so results are not
-re-filtered by keyword — an article about Nvidia's supplier is an Nvidia story
-even when the headline never says "Nvidia".
+Google matches the whole article, so its results **are** re-filtered on the
+headline before storage. A topic's keyword must appear in the title to count.
+
+This is the single most contentious rule here, so the reasoning is written down.
+Google will happily return a film trailer that mentions a chip in passing, and
+it can outrank real coverage — the first NVIDIA brief opened with one. Serious
+coverage of a company names it, and coverage that does not is noise.
+
+The cost is real and accepted: a story headlined "Chip stocks rally on AI
+demand" no longer lands under NVIDIA even though it is about them. If a topic
+looks thin, this rule is the first thing to reconsider — but check whether it is
+thin or merely quiet first.
 ```
 
 `append_news_articles` does three things atomically: inserts the batch, deduplicates on

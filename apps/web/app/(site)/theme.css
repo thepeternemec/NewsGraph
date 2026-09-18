@@ -979,3 +979,36 @@
   color: var(--text-ghost);
   font: 10px var(--font-mono), monospace;
 }
+
+/* ── Connect: the option cards are the selector ─────────────────────── */
+.connect-option {
+  cursor: pointer;
+  text-align: left;
+  border-radius: 10px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.connect-option:hover {
+  border-color: var(--border-strong);
+}
+.connect-option.is-active {
+  border-color: rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.03);
+}
+.copy-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-tertiary);
+  font: 10px var(--font-mono), monospace;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.copy-btn:hover {
+  color: #fff;
+  border-color: var(--border-strong);
+}

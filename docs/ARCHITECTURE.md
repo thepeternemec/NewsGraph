@@ -75,8 +75,8 @@ a field the API cannot return — which is the mechanism behind the project's on
 
 ## Deliberate non-features
 
-- **No article bodies.** Items carry a title, an excerpt and a publisher URL. There is no `body`
-  column at any price.
+- **No article bodies.** Items carry a headline, a link and the publisher's name. There is no
+  `body` column at any price.
 - **No writes in the API.** Every route is read-only.
 - **No sessions, no keys, no billing.** Read-only and public.
 - **No queue.** Ingestion is one pass over the catalog; the advisory lock in the SQL makes

@@ -29,8 +29,8 @@ export default function DocsOverview() {
           you avoid repeats.
         </li>
         <li>
-          <strong>Cite the publisher.</strong> Packs never contain article bodies, only a lede and a
-          source URL.
+          <strong>Cite the link.</strong> Items never contain article bodies — a headline, a link
+          that resolves to the story, and the publisher's name.
         </li>
       </ul>
 

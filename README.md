@@ -65,7 +65,7 @@ curl "$NEWS/v2/tools"                             # the same tools in OpenAI sha
 1. GET  /v2/topics                          pick a beat_id (once)
 2. GET  /v2/news?beat_id=…                  read the baseline, keep the cursor
 3. later: GET /v2/changes?beat_id=…&cursor=…
-4. if moved: summarise and cite the publisher URLs
+4. if moved: quote the headlines and cite the links
 5. store the new cursor
 ```
 
@@ -111,8 +111,8 @@ Setup, environment and the first ingestion: **[docs/GO-LIVE.md](docs/GO-LIVE.md)
 1. **Never claim more than the code does.** Every capability carries a status in STATUS.md and the
    README. Ship something, update those in the same PR.
 2. **Wire shapes live in `packages/contracts`.** Change the schema, not just the handler.
-3. **No article bodies, ever.** Items carry a title, an excerpt and a publisher URL. There is no
-   `body` field at any price, and adding one is out of scope.
+3. **No article bodies, ever.** Items carry a headline, a link and the publisher's name. There is
+   no `body` field at any price, and adding one is out of scope.
 4. **The schema is in the repository.** Change `db/schema.sql` when you change the SQL — it is
    idempotent, so `npm run db:setup` re-applies it safely.
 

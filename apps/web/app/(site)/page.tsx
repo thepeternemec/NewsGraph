@@ -55,7 +55,7 @@ const FEATURES = [
     icon: FileCheck,
     title: "Cited to the publisher",
     desc: "Every story carries the publisher's own link, name and timestamp. We hand you the signal, never the article.",
-    tag: "source URL on every item",
+    tag: "link on every item",
     viz: (
       <>
         <div className="viz-line"><span className="viz-key">Reuters</span><span className="viz-val">cited</span></div>
@@ -376,7 +376,7 @@ export default function Home() {
                   </div>
                   <div className="mock-row">
                     <span className="k">06:31 write</span>
-                    <span className="v">memo to the desk, source URL only</span>
+                    <span className="v">memo to the desk, link only</span>
                     <span className="s">no bodies</span>
                   </div>
                 </div>

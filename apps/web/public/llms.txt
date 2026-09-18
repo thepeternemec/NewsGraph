@@ -1,7 +1,19 @@
 # NewsGraph
-> Source-linked news for agents. Public read-only early access.
-- Setup: https://newsgraph.vercel.app/docs
-- Connections: https://newsgraph.vercel.app/connect
-- Agent instructions: https://newsgraph.vercel.app/skill.md
-- News API: https://newsgraph.vercel.app/api/v2/topics
+> Source-linked financial news for AI agents. Read-only, no credential required.
+
+540 US-listed equities. English-language headlines from Google News RSS, refreshed every 15
+minutes on a 24-hour window. Ask whether a topic moved; get nothing, or the headlines themselves.
+
+- API: https://newsgraph.vercel.app/api
+- Catalog: https://newsgraph.vercel.app/api/v2/topics
+- News: https://newsgraph.vercel.app/api/v2/news?beat_id=b_bb964843350e
+- Changes since a cursor: https://newsgraph.vercel.app/api/v2/changes?beat_id=…&cursor=…
+- Brief: https://newsgraph.vercel.app/api/v2/brief?beat_id=b_bb964843350e
+- Tool definitions: https://newsgraph.vercel.app/api/v2/tools
 - MCP: https://newsgraph.vercel.app/api/mcp
+- Agent instructions: https://newsgraph.vercel.app/skill.md
+- Docs: https://newsgraph.vercel.app/docs
+- Source: https://github.com/thepeternemec/NewsGraph
+
+Items carry a headline, a link that resolves to the article, and the publisher's name. There is no
+article body at any price. Cite the link returned, and name the source.

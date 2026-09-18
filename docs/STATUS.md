@@ -50,20 +50,16 @@ The three pilot topics are `stale`, not healthy: they ingested once and have not
 
 Ordered by what unblocks the most. Each is scoped to one pull request.
 
-1. **Recover publisher URLs.** Google News hands back a `news.google.com` redirect, and its newer
-   article ids are opaque, so the real publisher URL is not recoverable from the feed. Resolving it
-   needs a decode implementation or a cached redirect follower. Until then `source` carries the
-   publisher name and the item's `url` resolves to them on click.
-2. **Excerpts.** Google News carries no prose, so items have a headline and nothing else. Fetching
+1. **Excerpts.** Google News carries no prose, so items have a headline and nothing else. Fetching
    the lede would mean one request per article.
-3. **Restore crypto when it earns its place.** Crypto was removed deliberately: a coin trades
+2. **Restore crypto when it earns its place.** Crypto was removed deliberately: a coin trades
    continuously and a share does not, and mixing them made both harder to reason about. The stored
    articles are untouched, so restoring the list is a paste into `seed.ts`.
-4. **Build `brief`.** The contract is the easy part; the interesting question is what a good
+3. **Build `brief`.** The contract is the easy part; the interesting question is what a good
    three-sentence brief contains.
-5. **A Python client.** `packages/sdk` was a thin TypeScript wrapper and has been removed. A Python
+4. **A Python client.** `packages/sdk` was a thin TypeScript wrapper and has been removed. A Python
    one would be used immediately by more people than anything else here.
-6. **Push instead of poll.** `changes` already has the cursor semantics WebSocket needs.
+5. **Push instead of poll.** `changes` already has the cursor semantics WebSocket needs.
 
 ## Known issues
 

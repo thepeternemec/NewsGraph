@@ -12,6 +12,7 @@ minutes on a 24-hour window. Ask whether a topic moved; get nothing, or the head
 - Tool definitions: https://newsgraph.vercel.app/api/v2/tools
 - MCP: https://newsgraph.vercel.app/api/mcp
 - Agent instructions: https://newsgraph.vercel.app/skill.md
+- Registration: https://newsgraph.vercel.app/auth.md (none is required)
 - Docs: https://newsgraph.vercel.app/docs
 - Source: https://github.com/thepeternemec/NewsGraph
 

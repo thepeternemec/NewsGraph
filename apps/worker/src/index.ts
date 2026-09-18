@@ -178,11 +178,18 @@ async function runGoogle(beats: Beat[], now: Date): Promise<IngestionResult> {
       if (!beat) return;
       try {
         calls += 1;
-        const articles = await searchGoogleNews([...beat.keywords]);
+        const fetched = await searchGoogleNews([...beat.keywords]);
+        // Google matches the whole article, so a film trailer that mentions the
+        // chip in passing arrives under the NVIDIA topic — and can outrank real
+        // coverage. Requiring the keyword in the headline is what "has this
+        // ticker moved?" actually means; it costs recall on stories that name
+        // the company only in the body, and that is the right trade for a
+        // product whose answer is a headline.
+        const articles = fetched.filter((a) => titleMatches(a.title, beat.keywords));
         const written = articles.length ? await persistNews(beat.beat_id, articles) : { inserted: 0 };
         inserted += written.inserted;
         await markStatus(beat.beat_id, written.inserted, false);
-        results.push({ beat_id: beat.beat_id, label: beat.label, fetched: articles.length, inserted: written.inserted });
+        results.push({ beat_id: beat.beat_id, label: beat.label, fetched: fetched.length, inserted: written.inserted });
       } catch (error) {
         const message = (error as Error).message;
         await markStatus(beat.beat_id, 0, true).catch(() => {});

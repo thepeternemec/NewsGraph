@@ -18,7 +18,8 @@
     "dev": "npm run dev:web",
     "dev:web": "npm run dev -w newsgraph-web",
     "db:setup": "node db/migrate.mjs",
-    "key:issue": "node db/issue-key.mjs"
+    "key:issue": "node db/issue-key.mjs",
+    "db:prune": "node db/prune-mismatched.mjs"
   },
   "allowScripts": {
     "esbuild@0.28.2": true

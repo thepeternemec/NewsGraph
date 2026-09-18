@@ -61,7 +61,8 @@ export async function topics(query = "", limit = TOPIC_PAGE_DEFAULT, offset = 0)
                  from news_articles group by beat_id` as unknown as Promise<CountRow[]>,
         ]);
     }
-    catch {
+    catch (error) {
+        console.error("topics failed:", error);
         throw new NewsError("service_unavailable", "News storage is not ready.", 503);
     }
     const terms = query.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w => w.length >= 2 && !new Set(["the", "and", "news", "about", "latest", "follow", "keep", "with", "what", "changes", "tell"]).has(w));
@@ -110,7 +111,10 @@ export async function newsPage(beatId: string, cursor?: string, history = false)
         data = results[0] as unknown as NewsArticle[];
         state = (results[1] as unknown as Array<{ last_success_at: string | null }>)[0];
     }
-    catch {
+    catch (error) {
+        // Log it: the client is told only that it failed, so without this the
+        // cause is invisible in production and every bug looks identical.
+        console.error("newsPage failed:", error);
         throw new NewsError("service_unavailable", "Coverage could not be loaded. Please try again shortly.", 503);
     }
     const rows = (data ?? []).map((row: NewsArticle) => ({ ...row, id: String(row.id) })) as NewsArticle[];
@@ -182,17 +186,24 @@ export async function brief(beatId: string, cursor?: string, history = false) {
         rows = ((results[0] ?? []) as unknown as NewsArticle[]).slice(0, BRIEF_ITEMS);
         state = (results[1] as unknown as Array<{ last_success_at: string | null }>)[0];
     }
-    catch {
+    catch (error) {
+        // Log it: the client is told only that it failed, so without this the
+        // cause is invisible in production and every bug looks identical.
+        console.error("newsPage failed:", error);
         throw new NewsError("service_unavailable", "Coverage could not be loaded. Please try again shortly.", 503);
     }
 
+    // `published_at` is timestamptz, so the driver hands back a Date, not the
+    // string the row type claims. Normalise here rather than trusting the type —
+    // every consumer downstream expects ISO.
+    const iso = (value: unknown): string => value instanceof Date ? value.toISOString() : String(value ?? "");
     const items: BriefItem[] = (rows ?? []).map((row: NewsArticle) => ({
         lede: row.title,
         source: row.source,
         url: row.url,
-        published_at: row.published_at,
+        published_at: iso(row.published_at),
         // Lead time as a field, so "before the mainstream" stays measurable.
-        first_indexed_at: row.first_indexed_at,
+        first_indexed_at: iso(row.first_indexed_at),
     }));
     const isChange = !!cursor && !history;
     const nextSeq = isChange ? (rows.at(-1)?.id ?? sequence ?? "0") : (rows[0]?.id ?? "0");

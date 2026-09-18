@@ -12,6 +12,12 @@ export const BeatSchema = z.object({
   /** The exchange ticker or coin symbol, for display. */
   ticker: z.string(),
   /**
+   * Which market this belongs to. A coin and a company can share a ticker —
+   * Sui and Sun Communities are both SUI — and nothing in the symbol says which
+   * is which, so the data has to.
+   */
+  asset: z.enum(["equity", "crypto"]).optional(),
+  /**
    * Headline keywords. This is the matching mechanism: English articles whose
    * *title* contains any of these. Deliberately names rather than bare tickers
    * — "S" or "NOW" as a keyword matches most of the English language.

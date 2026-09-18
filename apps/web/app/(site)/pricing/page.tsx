@@ -70,7 +70,7 @@ export default function Pricing() {
               </tbody>
             </table>
             <p className="hero-tiny" style={{ marginTop: 16 }}>
-              540 US-listed equities, each refreshed every fifteen minutes. A topic reports
+              1034 topics — 934 US-listed equities and 100 crypto assets, each refreshed every fifteen minutes. A topic reports
               unavailable until it has been ingested once, and `status` says whether the check
               succeeded — read `article_count` and `recent_12h` to see what is actually there.
             </p>

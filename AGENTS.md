@@ -83,9 +83,12 @@ callers get 120 requests a minute, a key gets 1200. There is no billing.
 
 ## Current service state
 
-**540 topics**, all US-listed equities — the S&P 500 plus earlier additions — and every one has
-articles. Coverage is English-language financial news from Google News RSS, refreshed every
-fifteen minutes on a 24-hour window.
+**1034 topics**: 934 US-listed equities — the S&P 500, the S&P 400, and earlier additions — plus
+the top 100 crypto assets by market cap. Every one has articles. Coverage is English-language
+financial news from Google News RSS, refreshed every fifteen minutes on a 24-hour window.
+
+A coin and a company can share a ticker: Sui and Sun Communities are both `SUI`. Match on
+`beat_id`, and read `asset` to know which market you are looking at.
 
 A topic's `status` is `fresh`, `stale` or `unavailable`, and it reflects whether the *check*
 succeeded, not whether there is news. Read `article_count` and `recent_12h` from `/v2/topics` to

@@ -91,10 +91,23 @@ test("no doc still describes a catalog of four topics", () => {
   }
 });
 
-test("the catalog is equity-only while crypto is out", () => {
-  const tickers = SEED_BEATS.map((b) => b.ticker);
-  assert.ok(tickers.length > 300, `expected the full US catalog, got ${tickers.length}`);
-  for (const crypto of ["BTC", "ETH", "SOL", "DOGE"]) {
-    assert.equal(tickers.includes(crypto), false, `${crypto} is crypto; the catalog is equity-only`);
+test("the docs and the catalog agree about what is in it", () => {
+  const crypto = SEED_BEATS.filter((b) => b.asset === "crypto");
+  const equity = SEED_BEATS.filter((b) => b.asset !== "crypto");
+
+  // Crypto was removed once and restored on purpose. Both halves are now part of
+  // the product, and a doc that describes only one of them is the same drift in
+  // either direction — which is exactly what the four-topic guard caught.
+  assert.ok(equity.length > 500, `expected a full equity catalog, found ${equity.length}`);
+  assert.ok(crypto.length >= 90, `expected ~100 crypto topics, found ${crypto.length}`);
+  assert.ok(SEED_BEATS.length > 1000, `expected past 1000 topics, found ${SEED_BEATS.length}`);
+
+  for (const [name, text] of [["AGENTS.md", agents], ["docs/STATUS.md", status], ["README.md", readme]] as const) {
+    if (!/\b\d{3,4} topics\b/.test(text)) continue;
+    assert.equal(
+      /all US-listed equities|equity-only/i.test(text),
+      false,
+      `${name} claims the catalog is equities only, but it holds ${crypto.length} crypto assets`,
+    );
   }
 });

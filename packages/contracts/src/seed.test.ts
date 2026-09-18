@@ -10,15 +10,25 @@ test("the catalog is warm and well-formed", () => {
   }
 });
 
-test("every beat parses, with unique ids and unique tickers", () => {
+test("every beat parses, with unique ids and no duplicate assets", () => {
+  // A ticker may repeat, but only across asset classes: Sui and Sun Communities
+  // are both SUI, and the coin is labelled "(crypto)" to say which it is. Two
+  // entries with the same ticker and no such marker is the accident this
+  // catches — the same company added twice, which happened twice while the
+  // catalog was being assembled.
   const ids = new Set<string>();
-  const tickers = new Set<string>();
+  const tickers = new Map<string, (typeof SEED_BEATS)[number]>();
   for (const beat of SEED_BEATS) {
     assert.deepEqual(BeatSchema.parse(beat), beat);
     assert.ok(!ids.has(beat.beat_id), `duplicate beat id ${beat.beat_id}`);
-    assert.ok(!tickers.has(beat.ticker), `duplicate ticker ${beat.ticker}`);
     ids.add(beat.beat_id);
-    tickers.add(beat.ticker);
+
+    const previous = tickers.get(beat.ticker);
+    if (previous !== undefined) {
+      const distinct = previous.asset !== beat.asset;
+      assert.ok(distinct, `duplicate ticker ${beat.ticker}: "${previous.label}" and "${beat.label}"`);
+    }
+    tickers.set(beat.ticker, beat);
   }
 });
 
@@ -46,7 +56,9 @@ test("no keyword is a bare short ticker", () => {
       if (banned.has(upper)) {
         assert.ok(beat.keywords.length > 1, `${beat.ticker}: a generic keyword needs a distinctive partner`);
       }
-      assert.ok(keyword.trim().length >= 3, `${beat.ticker}: keyword "${keyword}" is too short`);
+      // Two characters is a real exchange symbol — RH, BP, GE. One character is
+      // not, and the genuinely ambiguous short words are named in `banned`.
+      assert.ok(keyword.trim().length >= 2, `${beat.ticker}: keyword "${keyword}" is too short`);
     }
   }
 });
@@ -57,14 +69,20 @@ test("beat ids are stable for the tickers already in use", () => {
   assert.equal(nvidia?.beat_id, "b_bb964843350e", "NVDA keeps its original id so stored cursors survive");
 });
 
-test("the catalog is equity-only, for now", () => {
+test("the catalog holds both asset classes", () => {
   const tickers = new Set(SEED_BEATS.map((b) => b.ticker));
+  const crypto = SEED_BEATS.filter((b) => b.asset === "crypto");
+
   for (const t of ["NVDA", "TSM", "TSLA", "AAPL", "MSFT"]) {
-    assert.ok(tickers.has(t), `expected ${t}`);
+    assert.ok(tickers.has(t), `expected the equity ${t}`);
   }
-  // Crypto was removed on purpose; this fails if it is quietly reintroduced
-  // without the docs and the ingestion window being reconsidered.
   for (const t of ["BTC", "ETH", "SOL", "DOGE"]) {
-    assert.ok(!tickers.has(t), `${t} is crypto — the catalog is equity-only`);
+    assert.ok(tickers.has(t), `expected the crypto asset ${t}`);
   }
+
+  // Crypto was removed once and restored on purpose. This asserts the restored
+  // shape rather than the presence of any one coin: a catalog that silently
+  // loses the crypto half is the same failure in the other direction.
+  assert.ok(crypto.length >= 90, `expected ~100 crypto topics, found ${crypto.length}`);
+  assert.ok(SEED_BEATS.length > 1000, `expected a catalog past 1000 topics, found ${SEED_BEATS.length}`);
 });

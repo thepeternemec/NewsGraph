@@ -25,7 +25,7 @@ Vercel deployment. There is no generated code and no second runtime.
 
 ## Verified working
 
-- `/v2/topics` — **540 topics**, the S&P 500 plus earlier additions. Each carries `beat_id`, `label`,
+- `/v2/topics` — **1034 topics**, the S&P 500 plus earlier additions. Each carries `beat_id`, `label`,
   `ticker`, `status`, `article_count` and `recent_12h`
 - `/v2/news` — **~32,000 articles** from **Google News RSS**, free and key-less, 24-hour window
 - Ingestion is **free**: no API key, no quota. `NEWSGRAPH_PROVIDER=newsapi` switches back to the

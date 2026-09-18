@@ -69,7 +69,7 @@ export async function topics(query = "", limit = TOPIC_PAGE_DEFAULT, offset = 0)
     const matched = SEED_BEATS.filter(t => !terms.length || terms.some(word => t.label.toLowerCase().includes(word)));
     const page = matched.slice(offset, offset + limit);
     const rows = page.map(t => { const state = statusRows.find(s => s.beat_id === t.beat_id); const counts = countRows.find((c) => c.beat_id === t.beat_id);
-        return { beat_id: t.beat_id, label: t.label, ticker: t.ticker,
+        return { beat_id: t.beat_id, label: t.label, ticker: t.ticker, asset: t.asset ?? "equity",
             article_count: counts?.total ?? 0,
             recent_12h: counts?.recent ?? 0, ...freshness(state?.last_success_at ?? null, t.freshness_slo_minutes), last_checked_at: state?.last_checked_at ?? null }; });
     const consumed = offset + rows.length;

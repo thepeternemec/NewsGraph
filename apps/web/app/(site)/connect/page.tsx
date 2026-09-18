@@ -111,7 +111,7 @@ export default function Connect() {
             <h1 className="sec-title">Start in one request.</h1>
             <p className="sec-sub">
               No key, no signup, no billing. Point your agent at the endpoint below and ask it about
-              a ticker — 540 US-listed equities, refreshed every fifteen minutes.
+              a ticker — 934 US-listed equities and 100 crypto assets, refreshed every fifteen minutes.
             </p>
             <div className="hero-cta">
               <a className="btn-primary" href="/docs/quickstart">

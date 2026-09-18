@@ -495,7 +495,7 @@ export default function Home() {
               <div className="feature" style={{ minHeight: 200 }}>
                 <span className="feature-tag" style={{ marginTop: 0, paddingTop: 0 }}>Shipped</span>
                 <p className="feature-desc" style={{ marginTop: 14 }}>
-                  540 US-listed equities, all with coverage, ingested free from Google News every
+                  1034 topics — 934 US-listed equities and 100 crypto assets, all with coverage, ingested free from Google News every
                   fifteen minutes. Cursors, briefs, pagination and rate limits — public, and no
                   credential required.
                 </p>
@@ -584,7 +584,7 @@ export default function Home() {
               <div className="feature" style={{ minHeight: 210 }}>
                 <h3 className="feature-title">The catalog is open</h3>
                 <p className="feature-desc">
-                  540 US-listed equities today, all with coverage, and the list is
+                  1034 topics — 934 US-listed equities and 100 crypto assets today, all with coverage, and the list is
                   deliberately open. Proposing a ticker takes an issue and no code at all, which
                   makes it the cheapest real contribution here.
                 </p>

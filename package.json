@@ -19,7 +19,9 @@
     "dev:web": "npm run dev -w newsgraph-web",
     "db:setup": "node db/migrate.mjs",
     "key:issue": "node db/issue-key.mjs",
-    "db:prune": "node db/prune-mismatched.mjs"
+    "db:prune": "node db/prune-mismatched.mjs",
+    "check": "npm run build && npm test",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "allowScripts": {
     "esbuild@0.28.2": true

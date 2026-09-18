@@ -1,0 +1,36 @@
+#!/bin/sh
+#
+# Refuse to rewrite published history on main.
+#
+# This exists because it happened: a commit was amended after it had been pushed,
+# which rewrites history for everyone. Nothing was lost that time — the
+# contribution below it survived — but the window was real and the mistake was
+# one `--amend` away from erasing somebody else's work.
+#
+# Branch protection on GitHub blocks this server-side. This blocks it before the
+# push leaves the machine, which also covers forks and anyone working offline.
+
+protected="refs/heads/main"
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$remote_ref" = "$protected" ] || continue
+
+  # A brand new branch has an all-zero remote sha; nothing to protect.
+  case "$remote_sha" in
+    0000000000000000000000000000000000000000) continue ;;
+  esac
+
+  if ! git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+    echo ""
+    echo "  refusing to force-push $protected."
+    echo ""
+    echo "  $remote_sha is not an ancestor of $local_sha, so this push would"
+    echo "  rewrite published history. A contribution may be in it."
+    echo ""
+    echo "  Make a new commit instead. If you are certain, --no-verify overrides."
+    echo ""
+    exit 1
+  fi
+done
+
+exit 0

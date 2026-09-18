@@ -98,3 +98,31 @@ or the ledger. Email the maintainer instead, and give us a chance to fix it befo
 ## License
 
 Contributions are accepted under the MIT license in [LICENSE](LICENSE).
+
+## A note on history and builds
+
+Two guard rails are installed by `npm install`, and they are not style
+preferences — each exists because the thing it prevents happened.
+
+**`pre-push` refuses to force-push `main`.** A commit was amended after it had
+been pushed, which rewrites history for everyone. Nothing was lost that time and
+the window was one command wide, but the repository has a contributor now and
+their commit sat directly above the one being rewritten. Branch protection
+enforces the same rule on GitHub; the hook catches it before the push leaves
+your machine, which also covers forks and anyone working offline.
+
+**`pre-commit` refuses to commit code that does not compile.** Twice a build was
+run with its output sent to `/dev/null`, which is a way of not finding out that
+it failed. Both times the next thing run was tested against a stale compiled
+artifact. A build's output is the only signal that it failed; the hook puts it
+where you cannot miss it.
+
+Both can be bypassed with `--no-verify` when you have a reason. Neither should
+be bypassed to tidy something up.
+
+If you work in a fresh clone and `git config core.hooksPath` is not set — for
+instance if you installed with `--ignore-scripts` — set it once:
+
+```bash
+git config core.hooksPath .githooks
+```

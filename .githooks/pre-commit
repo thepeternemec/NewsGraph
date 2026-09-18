@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# Type-check before committing.
+#
+# Twice in one session a build was run with its output redirected to /dev/null.
+# Both times it failed, both times nothing said so, and the next thing run was
+# tested against a stale compiled artifact — once hiding a bug that reached
+# production, once hiding a broken test.
+#
+# A build's output is the only thing that tells you it failed. This runs it
+# where you cannot miss the result.
+
+if ! out=$(npm run build:packages 2>&1); then
+  echo ""
+  echo "$out" | grep -E "error TS" | head -10
+  echo ""
+  echo "  refusing to commit: the packages do not compile."
+  echo "  Fix the error above, or commit with --no-verify to skip this check."
+  echo ""
+  exit 1
+fi

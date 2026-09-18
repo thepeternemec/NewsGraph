@@ -11,6 +11,7 @@
 
 import { Hono } from "hono";
 import { newsRoutes } from "./lib/news-routes.js";
+import { rateLimit, rateLimits } from "./lib/limit.js";
 import { mcpResponse } from "./lib/mcp.js";
 
 const app = new Hono();
@@ -26,6 +27,9 @@ app.use("*", async (c, next) => {
   await next();
 });
 
+// Counting happens before routing, so refused requests cost one indexed upsert.
+app.use("*", rateLimit);
+
 app.get("/health", (c) => c.json({ ok: true, service: "newsgraph", version: "0.3.0" }));
 
 app.get("/", (c) =>
@@ -34,6 +38,7 @@ app.get("/", (c) =>
     docs: "https://newsgraph.vercel.app/docs",
     repo: "https://github.com/thepeternemec/NewsGraph",
     routes: ["/v2/topics", "/v2/news", "/v2/changes", "/v2/tools", "/mcp", "/health"],
+    rate_limits: rateLimits,
   }),
 );
 

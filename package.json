@@ -17,7 +17,8 @@
     "test": "npm run build:packages && npm run build -w newsgraph-worker && npm run build -w @newsgraph/api && node --test packages/contracts/dist/*.test.js apps/worker/dist/*.test.js apps/api/dist/lib/*.test.js",
     "dev": "npm run dev:web",
     "dev:web": "npm run dev -w newsgraph-web",
-    "db:setup": "node db/migrate.mjs"
+    "db:setup": "node db/migrate.mjs",
+    "key:issue": "node db/issue-key.mjs"
   },
   "allowScripts": {
     "esbuild@0.28.2": true

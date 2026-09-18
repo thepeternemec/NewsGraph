@@ -6,3 +6,4 @@
  * be read next to the route that needs it.
  */
 export * from "./client.js";
+export * from "./keys.js";

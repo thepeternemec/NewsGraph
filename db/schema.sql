@@ -99,3 +99,28 @@ begin
   return inserted_count;
 end;
 $function$;
+
+-- ── Keys and rate limiting ──────────────────────────────────────────────
+-- Keys are optional. Anonymous callers are limited by address; a key raises
+-- the ceiling. Nothing in the public contract changes, which matters because
+-- every surface of this project documents the API as needing no credential.
+
+create table if not exists public.api_keys (
+  key_hash      text primary key,          -- sha-256 of the secret, never the secret
+  label         text not null default '',
+  created_at    timestamptz not null default now(),
+  last_used_at  timestamptz,
+  revoked_at    timestamptz
+);
+
+-- A fixed-window counter. One row per bucket per minute, incremented in a
+-- single statement so two concurrent requests cannot both read a stale count.
+create table if not exists public.api_usage (
+  bucket        text not null,             -- 'key:<hash>' or 'ip:<hash>'
+  window_start  timestamptz not null,
+  count         integer not null default 0,
+  primary key (bucket, window_start)
+);
+
+-- For the sweep that drops expired windows.
+create index if not exists api_usage_window_idx on public.api_usage (window_start);

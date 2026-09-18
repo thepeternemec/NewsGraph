@@ -77,32 +77,44 @@ export default function Dashboard() {
 
         setStamp(new Date().toLocaleTimeString());
 
-        // Articles for the first clusters that actually have any.
-        const withData = list.filter((t) => t.status !== "unavailable").slice(0, CLUSTER_LIMIT);
-        const loaded = await Promise.all(
-          withData.map(async (topic) => {
-            try {
-              const res = await fetch(`${API_BASE}/v2/news?beat_id=${topic.beat_id}`, { cache: "no-store" });
-              if (!res.ok) return { topic, articles: [] };
-              const page = (await res.json()) as { items?: Article[] };
-              return { topic, articles: page.items ?? [] };
-            } catch {
-              return { topic, articles: [] };
-            }
-          }),
-        );
-        if (!cancelled) setClusters(loaded);
+
       } catch {
         /* paused */
       }
     }
     load();
-    const id = setInterval(load, 15000);
+    const id = setInterval(load, 30000);
     return () => {
       cancelled = true;
       clearInterval(id);
     };
   }, []);
+
+  // Clusters are ten requests. Fetch them once, when that tab is first opened —
+  // polling them every 15s spent most of an anonymous caller's whole budget.
+  useEffect(() => {
+    if (view !== "clusters" || clusters.length > 0 || topics.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const withData = topics.filter((t) => t.status !== "unavailable").slice(0, CLUSTER_LIMIT);
+      const loaded = await Promise.all(
+        withData.map(async (topic) => {
+          try {
+            const res = await fetch(`${API_BASE}/v2/news?beat_id=${topic.beat_id}`, { cache: "no-store" });
+            if (!res.ok) return { topic, articles: [] };
+            const page = (await res.json()) as { items?: Article[] };
+            return { topic, articles: page.items ?? [] };
+          } catch {
+            return { topic, articles: [] };
+          }
+        }),
+      );
+      if (!cancelled) setClusters(loaded);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [view, topics, clusters.length]);
 
   const funded = topics.filter((t) => t.status !== "unavailable");
   const active = selected ?? funded[0]?.beat_id ?? null;

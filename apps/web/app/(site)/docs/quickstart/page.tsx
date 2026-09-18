@@ -131,7 +131,7 @@ export default function DocsQuickstart() {
 
       <div className="docs-nav-foot">
         <a href="/docs">← Overview</a>
-        <a href="/docs/data">Topics and articles →</a>
+        <a href="/docs/connect">Connecting →</a>
       </div>
     </>
   );

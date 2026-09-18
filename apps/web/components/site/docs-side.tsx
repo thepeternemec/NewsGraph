@@ -8,6 +8,7 @@ const GROUPS: Array<{ title: string; links: Array<{ href: string; label: string 
     links: [
       { href: "/docs", label: "Overview" },
       { href: "/docs/quickstart", label: "Quickstart" },
+      { href: "/docs/connect", label: "Connecting" },
     ],
   },
   {

@@ -418,11 +418,12 @@ export default function Home() {
         <section className="scaffold" id="pricing">
           <div className="wrap">
             <div className="sec-head">
-              <span className="sec-eyebrow">Pricing</span>
+              <span className="sec-eyebrow">Pricing · published, not yet charged</span>
               <h2 className="sec-title">Pay for answers, not for seats.</h2>
               <p className="sec-sub">
-                Nothing moved is nearly free, so asking often is rational. A real answer costs less
-                than half a cent.
+                Everything is free while we are in early access. These are the prices billing will
+                use when it is switched on: nothing moved costs a twentieth of a cent and a real
+                answer less than half a cent, so asking often stays rational.
               </p>
             </div>
             <div className="features" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
@@ -434,7 +435,7 @@ export default function Home() {
                 </div>
               ))}
             </div>
-            <p className="more"><a href="/pricing">The full price card and daily caps</a></p>
+            <p className="more"><a href="/pricing">What is free today, and what billing will cost</a></p>
           </div>
         </section>
 
@@ -494,22 +495,23 @@ export default function Home() {
               <div className="feature" style={{ minHeight: 200 }}>
                 <span className="feature-tag" style={{ marginTop: 0, paddingTop: 0 }}>Shipped</span>
                 <p className="feature-desc" style={{ marginTop: 14 }}>
-                  The beat catalog, the frozen contract, article clusters per beat, poll and delta
-                  the responsive design system, the docs and the pages you are reading.
+                  540 US-listed equities, all with coverage, ingested free from Google News every
+                  fifteen minutes. Cursors, briefs, pagination and rate limits — public, and no
+                  credential required.
                 </p>
               </div>
               <div className="feature" style={{ minHeight: 200 }}>
                 <span className="feature-tag" style={{ marginTop: 0, paddingTop: 0 }}>In progress</span>
                 <p className="feature-desc" style={{ marginTop: 14 }}>
-                  Rebuilding the topic queries for a 100-beat catalog, and turning live ingestion
-                  back on. The graph is seeded but not yet moving.
+                  Publisher URLs instead of Google News redirects, and a lede for items that
+                  currently carry only a headline.
                 </p>
               </div>
               <div className="feature" style={{ minHeight: 200 }}>
                 <span className="feature-tag" style={{ marginTop: 0, paddingTop: 0 }}>Next</span>
                 <p className="feature-desc" style={{ marginTop: 14 }}>
-                  Task-to-topic resolution, scheduled watches, briefs, an MCP server, and WebSocket
-                  push so a beat can wake an agent instead of being polled.
+                  Scheduled watches, WebSocket push so a beat can wake an agent instead of being
+                  polled, and a hosted MCP endpoint.
                 </p>
               </div>
               <div className="feature" style={{ minHeight: 200 }}>

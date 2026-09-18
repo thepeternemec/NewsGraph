@@ -114,9 +114,16 @@ export default function DocsQuickstart() {
 
       <h2>What there is not</h2>
       <ul>
-        <li>No API key, and no way to get one — nothing is metered</li>
+        <li>
+          No key to obtain. One is optional and only raises the rate limit, from 120 requests a
+          minute to 1200
+        </li>
         <li>No article bodies, at any price</li>
         <li>No writes: every route is read-only</li>
+        <li>
+          No summary. A brief quotes the publisher&rsquo;s own headlines — nothing is rewritten,
+          because a brief that paraphrases is a brief that can be wrong
+        </li>
         <li>
           No freshness guarantee right now — nothing is scheduled, so topics go{" "}
           <code>stale</code>. Check the <code>freshness</code> field before claiming currency

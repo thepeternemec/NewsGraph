@@ -37,7 +37,8 @@ export default function DocsOverview() {
       <h2>Access</h2>
       <p>
         There is no key to obtain and nothing to sign up for. Every route is read-only and public,
-        so you can build against it immediately.
+        so you can build against it immediately. Anonymous callers get 120 requests a minute;
+        an optional key raises that to 1200.
       </p>
       <table>
         <thead>
@@ -66,6 +67,15 @@ export default function DocsOverview() {
               <code>GET /v2/changes?beat_id=&amp;cursor=</code>
             </td>
             <td>Only what appeared since that cursor — usually nothing</td>
+          </tr>
+          <tr>
+            <td>
+              <code>GET /v2/brief?beat_id=</code>
+            </td>
+            <td>
+              The top three headlines verbatim, each with its source and UTC time — a sentence&rsquo;s
+              worth of news, not a summary
+            </td>
           </tr>
           <tr>
             <td>

@@ -54,7 +54,6 @@ export default function DocsQuickstart() {
       "id": "930",
       "beat_id": "b_bb964843350e",
       "title": "Blackwell vs Rubin: NVIDIA's AI GPU Battle Moves Into the Agentic AI Era",
-      "excerpt": "NVIDIA's Blackwell and Vera Rubin platforms represent two different stages…",
       "url": "https://infotechlead.com/?p=98306",
       "source": "InfotechLead",
       "published_at": "2026-09-13T08:46:24+00:00",

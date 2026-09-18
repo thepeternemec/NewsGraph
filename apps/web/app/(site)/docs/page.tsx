@@ -92,8 +92,9 @@ export default function DocsOverview() {
         </tbody>
       </table>
       <p>
-        No article bodies exist at any price. An item carries a title, an excerpt and the
-        publisher&rsquo;s URL — the full story stays with them.
+        No article bodies exist at any price. An item carries a headline, a link that resolves to
+        the article, the publisher&rsquo;s name and the time it was published — the story stays
+        with them.
       </p>
 
 

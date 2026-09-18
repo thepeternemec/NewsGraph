@@ -21,7 +21,6 @@ interface NewsItem {
   id: string;
   beat_id: string;
   title: string;
-  excerpt: string;
   url: string;
   source: string;
   published_at: string;
@@ -87,7 +86,6 @@ export function useNewsGraphStats(intervalMs = 20000) {
     beat_id: i.beat_id,
     beat_label: labelOf.get(i.beat_id) ?? "NEWSGRAPH",
     lede: i.title,
-    excerpt: i.excerpt,
     source: i.source,
     url: i.url,
     published_at: i.published_at,

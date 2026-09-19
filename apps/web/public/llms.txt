@@ -1,7 +1,7 @@
 # NewsGraph
 > Source-linked financial news for AI agents. Read-only, no credential required.
 
-1034 topics — 934 US-listed equities and 100 crypto assets. English-language headlines from Google News RSS, refreshed every 15
++1000 topics covered: US-listed equities and the largest crypto assets. English-language headlines from Google News RSS, refreshed every 15
 minutes on a 24-hour window. Ask whether a topic moved; get nothing, or the headlines themselves.
 
 - API: https://newsgraph.vercel.app/api

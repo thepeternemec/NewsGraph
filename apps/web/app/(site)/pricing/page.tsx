@@ -58,6 +58,7 @@ export default function Pricing() {
                 you may ask — it unlocks no data that is otherwise closed.
               </p>
             </div>
+            <div className="table-scroll">
             <table className="docs-body" style={{ maxWidth: "100%" }}>
               <thead>
                 <tr>
@@ -76,6 +77,7 @@ export default function Pricing() {
                 ))}
               </tbody>
             </table>
+            </div>
             <p className="hero-tiny" style={{ marginTop: 16 }}>
               Keys are issued by hand while the catalog is still settling, so ask rather than
               self-serve. Only the hash is stored, and a lost key cannot be recovered — you are
@@ -95,7 +97,7 @@ export default function Pricing() {
                 often stays rational.
               </p>
             </div>
-            <div className="features" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+            <div className="features grid-4">
               {PRICES.map((p) => (
                 <div key={p.label} className="feature" style={{ minHeight: 190 }}>
                   <span className="feature-tag" style={{ marginTop: 0, paddingTop: 0 }}>
@@ -121,10 +123,11 @@ export default function Pricing() {
               <span className="sec-eyebrow">The surface</span>
               <h2 className="sec-title">Six routes, all of them open.</h2>
               <p className="sec-sub">
-                1034 topics — 934 US-listed equities and 100 crypto assets — refreshed every fifteen
+                +1000 topics covered — equities and crypto — refreshed every fifteen
                 minutes.
               </p>
             </div>
+            <div className="table-scroll">
             <table className="docs-body" style={{ maxWidth: "100%" }}>
               <thead>
                 <tr>
@@ -143,6 +146,7 @@ export default function Pricing() {
                 ))}
               </tbody>
             </table>
+            </div>
             <p className="hero-tiny" style={{ marginTop: 16 }}>
               A topic reports <code>status</code> for whether the last check succeeded — which is not
               the same as whether there is news. Read <code>article_count</code> and{" "}

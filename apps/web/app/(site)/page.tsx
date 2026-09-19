@@ -426,7 +426,7 @@ export default function Home() {
                 answer less than half a cent, so asking often stays rational.
               </p>
             </div>
-            <div className="features" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+            <div className="features grid-4">
               {PRICES.map((p) => (
                 <div key={p.label} className="feature" style={{ minHeight: 190 }}>
                   <span className="feature-tag" style={{ marginTop: 0, paddingTop: 0 }}>{p.label}</span>
@@ -491,11 +491,11 @@ export default function Home() {
                 discover it.
               </p>
             </div>
-            <div className="features" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+            <div className="features grid-4">
               <div className="feature" style={{ minHeight: 200 }}>
                 <span className="feature-tag" style={{ marginTop: 0, paddingTop: 0 }}>Shipped</span>
                 <p className="feature-desc" style={{ marginTop: 14 }}>
-                  1034 topics — 934 US-listed equities and 100 crypto assets, all with coverage, ingested free from Google News every
+                  +1000 topics covered — equities and crypto, all with coverage, ingested free from Google News every
                   fifteen minutes. Cursors, briefs, pagination and rate limits — public, and no
                   credential required.
                 </p>
@@ -584,7 +584,7 @@ export default function Home() {
               <div className="feature" style={{ minHeight: 210 }}>
                 <h3 className="feature-title">The catalog is open</h3>
                 <p className="feature-desc">
-                  1034 topics — 934 US-listed equities and 100 crypto assets today, all with coverage, and the list is
+                  +1000 topics covered today, all with coverage, and the list is
                   deliberately open. Proposing a ticker takes an issue and no code at all, which
                   makes it the cheapest real contribution here.
                 </p>

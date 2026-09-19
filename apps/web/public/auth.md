@@ -66,8 +66,8 @@ Returns the four calls in OpenAI function-call shape:
 | `newsgraph_changes` | Ask what is new since that cursor |
 | `newsgraph_brief` | The top headlines verbatim, with source and UTC time |
 
-`GET /v2/topics?q=` searches by ticker or company name across 1034 topics — 934
-US-listed equities and 100 crypto assets. A coin and a company can share a ticker
+`GET /v2/topics?q=` searches by ticker or company name across +1000 topics —
+US-listed equities and the largest crypto assets. A coin and a company can share a ticker
 (Sui and Sun Communities are both `SUI`), so read `asset` to tell them apart.
 
 ## 5. Errors

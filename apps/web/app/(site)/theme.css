@@ -1071,3 +1071,40 @@
   }
   .cluster-line .c-status { display: none; }
 }
+
+/* ── Responsive grids ────────────────────────────────────────────────
+   These were inline `gridTemplateColumns`, which no media query can
+   override — so a phone laid four price cards across 360px. The count
+   lives in a class now, where it can collapse. */
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 1000px) {
+  .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+}
+
+/* ── Tables on a phone ───────────────────────────────────────────────
+   A four-column table cannot shrink below its content, so it scrolls
+   inside its own box rather than pushing the page sideways. */
+@media (max-width: 720px) {
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-inline: -18px;
+    padding-inline: 18px;
+  }
+  .table-scroll table {
+    min-width: 520px;
+  }
+  .table-scroll table th,
+  .table-scroll table td {
+    white-space: nowrap;
+  }
+  .table-scroll table td:last-child {
+    white-space: normal;
+    min-width: 190px;
+  }
+}

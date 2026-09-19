@@ -42,6 +42,23 @@ test("every stated catalog size matches the catalog", () => {
   }
 });
 
+test("the published floor is a floor", () => {
+  // Marketing copy says "+1000 topics covered" rather than naming the exact
+  // count, because a number printed on a landing page is a number that goes
+  // stale. A floor only goes stale if the catalog *shrinks* below it, which is
+  // the thing worth failing on — and the exact counts stay in STATUS.md and
+  // AGENTS.md, where the count guard above watches them.
+  const MARKETING = ["apps/web/public/llms.txt", "apps/web/public/auth.md"];
+  for (const file of MARKETING) {
+    const text = readFileSync(fileURLToPath(new URL(`${ROOT}${file}`, import.meta.url)), "utf8");
+    if (!text.includes("+1000 topics")) continue;
+    assert.ok(
+      SEED_BEATS.length > 1000,
+      `${file} advertises "+1000 topics" but the catalog holds ${SEED_BEATS.length}`,
+    );
+  }
+});
+
 test("the docs name the tools, and every tool they name exists", () => {
   // This started as a one-way check and was vacuous: no doc mentioned a tool at
   // all, so the loop never ran and the guard could not fail. It now asserts both

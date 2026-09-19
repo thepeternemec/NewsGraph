@@ -40,6 +40,7 @@ export default function DocsConnect() {
 }`}</pre>
       </div>
       <p>The four tools it gains:</p>
+      <div className="table-scroll">
       <table>
         <thead>
           <tr>
@@ -66,6 +67,7 @@ export default function DocsConnect() {
           </tr>
         </tbody>
       </table>
+            </div>
 
       <h2>HTTP</h2>
       <p>Anything that can make a request can use this. Four routes, no ordering requirement.</p>
@@ -107,6 +109,7 @@ curl -s "${API}/v2/brief?beat_id=b_bb964843350e"`}</pre>
         <strong>A key is optional and does not unlock anything.</strong> It raises your ceiling.
         The API is read-only and public, and stays that way.
       </p>
+      <div className="table-scroll">
       <table>
         <thead>
           <tr>
@@ -128,6 +131,7 @@ curl -s "${API}/v2/brief?beat_id=b_bb964843350e"`}</pre>
           </tr>
         </tbody>
       </table>
+            </div>
       <p>
         Keys are issued by hand while the catalog is still settling — there is no self-serve form
         yet. Ask, and you get a <code>ng_</code>-prefixed secret shown once. Only its hash is
@@ -143,6 +147,7 @@ X-RateLimit-Tier: anonymous`}</pre>
       </div>
 
       <h2>When something goes wrong</h2>
+      <div className="table-scroll">
       <table>
         <thead>
           <tr>
@@ -179,6 +184,7 @@ X-RateLimit-Tier: anonymous`}</pre>
           </tr>
         </tbody>
       </table>
+            </div>
       <p>
         A cursor is signed and bound to one topic. It cannot be reused for another, and an old one
         will not return a wider window — it will return the same one, and you will have paid for

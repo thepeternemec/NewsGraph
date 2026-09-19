@@ -42,7 +42,7 @@ export default function Page() {
                 Early users deserve to know exactly where the line is. This is it.
               </p>
             </div>
-            <div className="features" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+            <div className="features grid-4">
               {ROADMAP.map((r) => (
                 <div key={r.when} className="feature" style={{ minHeight: 160 }}>
                   <span className="feature-tag" style={{ marginTop: 0, paddingTop: 0 }}>{r.when}</span>

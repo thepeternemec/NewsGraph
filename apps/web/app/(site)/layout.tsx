@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import "./motion.css";
 import "./motion-components.css";
@@ -30,6 +31,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SmoothScroll />
         <MotionEnhance />
         {children}
+        {/* Page views. Mounted at the root so every route is counted, including
+            the docs and the dashboard. */}
+        <Analytics />
       </body>
     </html>
   );

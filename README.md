@@ -1,11 +1,11 @@
 ---
 name: NewsGraph
 type: api
-category: real-time news context for AI agents
+category: news context for AI agents
 auth: none (read-only, public)
 pricing: free while in early access
-topics: 20
-articles: 532
+topics: 1034
+articles: 57600
 languages: eng
 live: https://newsgraph.vercel.app
 api: https://newsgraph.vercel.app/api
@@ -22,7 +22,7 @@ license: MIT
   <a href="https://github.com/thepeternemec/NewsGraph/issues"><img src="https://img.shields.io/github/issues/thepeternemec/NewsGraph?style=for-the-badge&color=orange" alt="Issues"></a>
 </p>
 
-**Real-time news context for AI agents.** An agent asks a topic and a cursor, and gets back either
+**News context for AI agents.** An agent asks a topic and a cursor, and gets back either
 **"nothing moved"** or **a small pack of cited stories**. Read-only, no credential, no billing.
 
 Live at **[newsgraph.vercel.app](https://newsgraph.vercel.app)** · API at
@@ -122,9 +122,9 @@ Setup, environment and the first ingestion: **[docs/GO-LIVE.md](docs/GO-LIVE.md)
 
 **[CONTRIBUTING-FIRST-PR.md](CONTRIBUTING-FIRST-PR.md)** — fresh clone to merged change.
 
-The cheapest real contribution is a **topic**: seventeen of the twenty have no articles, and
+The cheapest real contribution is a **topic**:
 [there is an issue template](https://github.com/thepeternemec/NewsGraph/issues/new?template=topic_request.yml)
-that needs no code at all. After that, scheduling the worker (#1 in STATUS.md) is the single
+that needs no code at all. After that, self-serve API keys (#1 in STATUS.md) is the single
 highest-value change in the repository.
 
 MIT licensed. No CLA. [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) has the ground rules.

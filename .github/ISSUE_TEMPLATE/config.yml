@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
-  - name: Read the docs first
-    url: https://newsgraph.vercel.app/docs
-    about: Quickstart, the contract, the billing model and the limits.
-  - name: Ask a question
-    url: https://github.com/thepeternemec/NewsGraph/discussions
-    about: For "how do I…" rather than a bug or a feature.
+  - name: Read the state of the project first
+    url: https://github.com/thepeternemec/NewsGraph/blob/main/docs/STATUS.md
+    about: What works today with verified numbers, what is not built, and what is worth building next.
+  - name: API reference
+    url: https://newsgraph.vercel.app/docs/connect
+    about: Endpoints, keys, rate limits and the error table.

@@ -66,7 +66,14 @@ export async function topics(query = "", limit = TOPIC_PAGE_DEFAULT, offset = 0)
         throw new NewsError("service_unavailable", "News storage is not ready.", 503);
     }
     const terms = query.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w => w.length >= 2 && !new Set(["the", "and", "news", "about", "latest", "follow", "keep", "with", "what", "changes", "tell"]).has(w));
-    const matched = SEED_BEATS.filter(t => !terms.length || terms.some(word => t.label.toLowerCase().includes(word)));
+    // Matches the ticker as well as the name, which is what the docs, `auth.md`
+    // and the dashboard's own search all promise. It matched the label only, so
+    // `?q=spcx` found nothing while `?q=space` found SpaceX — and the failure was
+    // invisible because every ticker I happened to test shared its letters with
+    // its own company name (nvid/NVIDIA, jpmorgan/JPMorgan).
+    const matched = SEED_BEATS.filter(t => !terms.length || terms.some(word =>
+        t.label.toLowerCase().includes(word) || t.ticker.toLowerCase() === word
+        || t.ticker.toLowerCase().replace(/\.[a-z]$/, "").includes(word)));
     const page = matched.slice(offset, offset + limit);
     const rows = page.map(t => { const state = statusRows.find(s => s.beat_id === t.beat_id); const counts = countRows.find((c) => c.beat_id === t.beat_id);
         return { beat_id: t.beat_id, label: t.label, ticker: t.ticker, asset: t.asset ?? "equity",

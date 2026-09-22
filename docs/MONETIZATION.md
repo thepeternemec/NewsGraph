@@ -95,3 +95,106 @@ something. 6 is not optional and is the one most likely to be skipped.
   integrations break the day a key is required. A deprecation window with
   `X-Newsgraph-Deprecation` headers costs little and keeps the promise that this
   project does not surprise its users.
+
+---
+
+# The pricing plan: $0.20 a day
+
+## Why it cannot be charged daily
+
+Stripe takes **2.9% + $0.30** per successful charge and enforces a **$0.50
+minimum**. A $0.20 charge pays out **-$0.1058** — you would pay to collect it.
+
+```
+     charge      fee       net    kept
+     $ 0.20 $ 0.3058 $ -0.1058  -52.9%   <- a loss, and below the minimum
+     $ 0.50 $ 0.3145 $  0.1855   37.1%
+     $ 6.00 $ 0.4740 $  5.5260   92.1%
+     $18.00 $ 0.8220 $ 17.1780   95.4%
+     $60.00 $ 2.0400 $ 57.9600   96.6%
+```
+
+So **$0.20/day is the rate, not the transaction.** A balance is bought in blocks
+and drawn down a day at a time. This is not a workaround — it is also the better
+product, because a customer on a prepaid balance cannot be surprised by a bill,
+which is the main reason people distrust usage-based pricing.
+
+## The plan
+
+| | |
+| --- | --- |
+| **Trial** | 7 days, no card |
+| **Rate** | **$0.20 / day** |
+| **Top up** | $6 · 30 days — $18 · 90 days — $60 · 300 days |
+| **Included** | The whole API. Roughly **50 topics watched continuously** |
+
+Blocks are priced so the fee falls with size: 92% kept at $6, 97% at $60. $6 is
+the floor, because below it Stripe's cut climbs faster than the price does.
+
+## What a day buys
+
+Ingestion is free — Google News is key-less — so the cost of serving is a
+function invocation and one indexed query. **The limit is not cost, it is
+abuse.** A day is capped at about **5,000 calls**, which is what continuous
+watching actually looks like:
+
+```
+1 topic  polled every 15 minutes  =    96 checks/day
+50 topics polled every 15 minutes = 4,800 checks/day
+```
+
+So "$0.20/day" is a promise with a number behind it: watch up to fifty tickers
+as hard as the schedule allows.
+
+## Where the per-call prices go
+
+They do not disappear. The micro-prices already recorded in `usage_ledger`
+become the **overage rate** past the daily cap:
+
+| Past the cap | Cost |
+| --- | --- |
+| check · nothing new | $0.0005 |
+| check · something moved | $0.004 |
+| brief | $0.03 |
+
+That is the argument for keeping phase 1's metering rather than deleting it: the
+ledger measures fair use, and it is the only thing that can tell a heavy customer
+apart from an abusive one.
+
+## Why this is cheap, deliberately
+
+$0.20/day is **$6 a month** — a land-grab price, not a sustainable one. It is
+defensible only while ingestion is free and the catalogue is the only cost
+centre. Two things would end it:
+
+- a paid news provider (newsapi.ai at volume)
+- publisher URL resolution, which needs a browser or a paid backend per article
+
+Both are on the roadmap. The price is deliberately below what it costs to run
+well, and the honest framing is that it buys adoption rather than margin.
+
+## The flow
+
+```
+Landing        "$0.20 a day. Watch fifty tickers as hard as the schedule allows."
+                CTA: 7 days free, no card     ← the trial, stated as time
+
+Sign up        AuthKit, email only. Key issued. Trial balance written.
+
+Agent profile  days remaining · topics watched · calls today against the cap
+                balance · recent briefs · the ledger
+
+Day boundary   draw $0.20. At zero, calls return 402 with a top-up link.
+
+Top up         Stripe Checkout, one-off. $6 / $18 / $60.
+               Keyed by session id, so a replayed webhook cannot credit twice.
+```
+
+## What to watch
+
+- **$0.20 is a guess until traffic exists.** Phase 1 is recording real costs now;
+  read `usageSummary` before the trial size is fixed, not after.
+- **The 5,000-call cap is a policy, not a discovery.** It follows from 50 topics
+  at the polling interval, and both halves of that are changeable.
+- **A daily draw-down needs a scheduler.** The same Vercel Cron that ingests can
+  draw balances, on the same tick.

@@ -31,10 +31,11 @@ export default function Pricing() {
         <div className="page-head">
           <div className="wrap">
             <span className="sec-eyebrow">Pricing</span>
-            <h1 className="sec-title">Free while in early access.</h1>
+            <h1 className="sec-title">$0.20 a day.</h1>
             <p className="sec-sub">
-              No signup, no credit card, and nothing to install. Every route is read-only and
-              public — the only cost of trying it is the request.
+              Watch up to fifty tickers as hard as the fifteen-minute schedule allows — roughly
+              5,000 checks a day. Bought as a prepaid balance, drawn down one day at a time, so it
+              cannot surprise you with a bill. Seven days free, no card.
             </p>
             <div className="hero-cta">
               <a className="btn-primary" href="/docs/quickstart">
@@ -44,7 +45,7 @@ export default function Pricing() {
                 Connect
               </a>
             </div>
-            <p className="hero-tiny">no signup · no billing · a key is optional and free</p>
+            <p className="hero-tiny">not charged today · billing is not switched on</p>
           </div>
         </div>
 
@@ -52,10 +53,11 @@ export default function Pricing() {
           <div className="wrap">
             <div className="sec-head">
               <span className="sec-eyebrow">Today</span>
-              <h2 className="sec-title">What access costs right now: nothing.</h2>
+              <h2 className="sec-title">What it costs right now: nothing.</h2>
               <p className="sec-sub">
-                Nothing is metered and no invoice exists. The only thing a key changes is how fast
-                you may ask — it unlocks no data that is otherwise closed.
+                Billing is not switched on, and no mechanism in this codebase could charge you. The
+                API is open and anonymous. The plan below is published so the shape is not a
+                surprise later, not because it is running.
               </p>
             </div>
             <div className="table-scroll">
@@ -89,12 +91,12 @@ export default function Pricing() {
         <section className="scaffold" id="later">
           <div className="wrap">
             <div className="sec-head">
-              <span className="sec-eyebrow">Later · published, not yet charged</span>
-              <h2 className="sec-title">Pay for answers, not for seats.</h2>
+              <span className="sec-eyebrow">The plan · published, not yet charged</span>
+              <h2 className="sec-title">One rate, and no bill to be surprised by.</h2>
               <p className="sec-sub">
-                When billing is switched on these are the prices. They are printed now so the shape
-                of the product is not a surprise later — an empty answer is nearly free, so asking
-                often stays rational.
+                A prepaid balance is bought in blocks and drawn down a day at a time. Larger blocks
+                keep more of the money — 92% at $6, 97% at $60 — because a card fee falls as a
+                share of the charge.
               </p>
             </div>
             <div className="features grid-4">

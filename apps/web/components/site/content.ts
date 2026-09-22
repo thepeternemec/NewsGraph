@@ -13,24 +13,24 @@ export const API_BASE =
 
 export const PRICES = [
   {
-    label: "check · nothing new",
-    price: "$0.0005",
-    desc: "Most checks come back empty. Empty is a real answer, and it is nearly free.",
+    label: "the rate",
+    price: "$0.20",
+    desc: "A day. Watch up to fifty tickers as hard as the fifteen-minute schedule allows — about 5,000 checks.",
   },
   {
-    label: "check · something moved",
-    price: "$0.004",
-    desc: "Under a cent for a bounded, cited pack. Reuse is rewarded, re-reading is not.",
+    label: "top up · 30 days",
+    price: "$6",
+    desc: "One charge, drawn down a day at a time. A balance cannot surprise you with a bill.",
   },
   {
-    label: "delta · cold",
-    price: "$0.02",
-    desc: "On-demand compute against the replica, cached for 15 minutes.",
+    label: "top up · 90 days",
+    price: "$18",
+    desc: "The same rate, and less of it goes to card fees — 95% of it reaches us rather than 92%.",
   },
   {
-    label: "brief",
-    price: "$0.03",
-    desc: "The only call that spends a mid-tier model. Kept off the cheap path on purpose.",
+    label: "top up · 300 days",
+    price: "$60",
+    desc: "For an agent that runs all year without anyone thinking about it.",
   },
 ];
 
@@ -76,7 +76,7 @@ export const FAQ = [
   },
   {
     q: "How does billing work?",
-    a: "Usage-based, per answer. A check that returns nothing costs $0.0005 and a check that returns a cited pack costs $0.004. There is no seat, no platform fee and no monthly minimum. You can pay per call, or top up a prepaid balance and draw down from it — card, invoice and stablecoin are all accepted.",
+    a: "Nothing, today — billing is not switched on and no mechanism in this codebase can charge you. The plan when it is: $0.20 a day, bought as a prepaid balance and drawn down one day at a time. A balance cannot surprise you with a bill, which is the point. Seven days are free and need no card.",
   },
   {
     q: "Can my agent pay for itself?",

@@ -163,8 +163,10 @@ create table if not exists public.usage_ledger (
   beat_id         text,
   cost_micro      integer not null check (cost_micro >= 0),
   -- Balance after this call, so a dispute is answerable without replaying the
-  -- whole ledger.
-  credits_after   bigint not null,
+  -- whole ledger. Nullable because phase 1 records costs before any balance
+  -- exists to record against — and it was NOT NULL, so every insert failed
+  -- silently behind a catch that was meant to make the ledger non-fatal.
+  credits_after   bigint,
   created_at      timestamptz not null default now()
 );
 

@@ -10,7 +10,16 @@
  * become an outage in the product.
  */
 import type { Context, Next } from "hono";
-import { consumeRateLimit, db, env, hasDatabaseEnv, hashKey, resolveKey } from "@newsgraph/db";
+import {
+  consumeRateLimit,
+  costFor,
+  db,
+  env,
+  hasDatabaseEnv,
+  hashKey,
+  recordUsage,
+  resolveKey,
+} from "@newsgraph/db";
 
 const ANON_LIMIT = Math.max(1, Number(env("NEWSGRAPH_RATE_ANON") ?? 120));
 const KEYED_LIMIT = Math.max(1, Number(env("NEWSGRAPH_RATE_KEYED") ?? 1200));
@@ -80,5 +89,44 @@ export async function rateLimit(c: Context, next: Next): Promise<Response | void
     // Counter unavailable — serve the request.
   }
 
-  return next();
+  // Phase 1: record what this call costs, and do not act on it. The prices need
+  // to be checked against real traffic before anything is refused; a cost model
+  // nobody has measured is a guess with a decimal point.
+  const started = Date.now();
+  await next();
+  // Hono returns void from next(); the response it produced is on the context.
+  const response = c.res;
+  const costMicro = costFor(c.req.path, await peekJson(response));
+  c.header("X-Newsgraph-Cost-Micro", String(costMicro));
+  // Awaited, not fired and forgotten. This is a serverless function: the moment
+  // the response returns the instance can be frozen, and a floating promise
+  // never lands. The first version of this recorded exactly zero rows for
+  // exactly that reason — the write looked correct and silently never happened.
+  await recordUsage(sql, {
+    accountId: null,
+    keyHash: bucket.startsWith("key:") ? bucket.slice(4) : null,
+    route: c.req.path,
+    beatId: c.req.query("beat_id") ?? null,
+    costMicro,
+    creditsAfter: null,
+  });
+  c.header("X-Newsgraph-Ms", String(Date.now() - started));
+  return response;
+}
+
+/**
+ * Read a response body for costing without consuming it.
+ *
+ * Cost depends on the result — an empty check is 500 micro and one that moved is
+ * 4000 — so the route alone cannot decide it. Cloning is the only way to look
+ * without spending the body the client is about to receive.
+ */
+async function peekJson(response: Response): Promise<unknown> {
+  try {
+    const type = response.headers.get("content-type") ?? "";
+    if (!type.includes("json")) return null;
+    return await response.clone().json();
+  } catch {
+    return null;
+  }
 }

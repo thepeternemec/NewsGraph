@@ -3,9 +3,15 @@ import type { Beat } from "./beats.js";
 /**
  * The catalog: US-listed equities and the top 100 crypto assets.
  *
- * Crypto was removed once and is now back deliberately. The reasoning that took
- * it out still holds — a coin trades continuously and a share does not — but it
- * is an argument for keeping the two legible, not for excluding half the market.
+ * Built from index constituents — the S&P 500, the S&P 400, and additions — which
+ * has a blind spot worth naming: **an index list cannot see a recent IPO.**
+ * SpaceX listed and was absent from this file until someone searched for it.
+ * Index membership answers "what is large and established", not "what makes
+ * news", and those are different sets.
+ *
+ * Crypto was removed once and restored deliberately. A coin trades continuously
+ * and a share does not, which is an argument for keeping them legible, not for
+ * excluding half the market.
  *
  * A coin and a company can share a ticker: Sui and Sun Communities are both SUI.
  * The symbol does not say which is which, so `asset` does.
@@ -12529,6 +12535,18 @@ export const SEED_BEATS: readonly Beat[] = [
     ticker: "FLR",
     asset: "crypto",
     keywords: ["Flare", "FLR"],
+    topic_filters: [],
+    languages: ["eng"],
+    excludes: "",
+    state: "warm",
+    refresh_interval_minutes: 15,
+    freshness_slo_minutes: 30,
+  },
+  {
+    beat_id: "b_7883c6d63df4",
+    label: "SpaceX",
+    ticker: "SPCX",
+    keywords: ["SpaceX", "SPCX"],
     topic_filters: [],
     languages: ["eng"],
     excludes: "",

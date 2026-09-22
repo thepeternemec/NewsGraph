@@ -34,6 +34,9 @@ Vercel deployment. There is no generated code and no second runtime.
 - `/v2/changes` — signed, topic-bound cursors; a replay returns nothing rather than duplicates
 - `/v2/brief` — the top three headlines **verbatim**, with source and UTC time. Deliberately not a
   summary: a brief that paraphrases can be wrong while reading well
+- `/v2/stories` — **the events behind a topic rather than the coverage of it.** Groups
+  near-identical headlines and orders by how many publishers carried each, so eleven reports of one
+  court ruling appear as one story with `source_count: 36`
 - `/v2/tools` and `/mcp` — the same handlers, in OpenAI and MCP shape
 - **Rate limits** — 120 requests/minute anonymous, 1200 with a key. Keys are optional and unlock no
   data; they raise a ceiling

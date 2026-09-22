@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { NEWS_TOOLS } from "@newsgraph/contracts";
-import { NewsError, topics, newsPage, brief, TOPIC_PAGE_DEFAULT, TOPIC_PAGE_MAX } from "./news.js";
+import { NewsError, topics, newsPage, brief, stories, TOPIC_PAGE_DEFAULT, TOPIC_PAGE_MAX } from "./news.js";
 export const newsRoutes = new Hono();
 newsRoutes.onError((error, c) => { if (error instanceof NewsError)
     return c.json({ error: { code: error.code, message: error.message } }, error.status as 400 | 404 | 410 | 503); console.error("news request failed", error.name); return c.json({ error: { code: "service_unavailable", message: "News is temporarily unavailable." } }, 503); });
@@ -9,6 +9,13 @@ const clamp = (raw: string | undefined, fallback: number, max: number) => {
     const n = Number.parseInt(raw ?? "", 10);
     return Number.isFinite(n) && n >= 0 ? Math.min(n, max) : fallback;
 };
+newsRoutes.get("/stories", async (c) => {
+    const beatId = (c.req.query("beat_id") ?? "").trim();
+    if (!beatId)
+        return c.json({ error: "invalid_request", detail: "beat_id is required" }, 400);
+    const limit = clamp(c.req.query("limit"), 200, 500) || 200;
+    return c.json(await stories(beatId, limit));
+});
 newsRoutes.get("/brief", async (c) => {
     const beatId = (c.req.query("beat_id") ?? "").trim();
     if (!beatId)

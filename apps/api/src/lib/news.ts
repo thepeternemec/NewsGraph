@@ -1,3 +1,4 @@
+import { clusterStories } from "./cluster.js";
 import { db as connect, env, hasDatabaseEnv } from "@newsgraph/db";
 import { SEED_BEATS, type NewsArticle } from "@newsgraph/contracts";
 export class NewsError extends Error {
@@ -220,12 +221,75 @@ export async function brief(beatId: string, cursor?: string, history = false) {
         ticker: topic.ticker,
         label: topic.label,
         generated_at: new Date().toISOString(),
-        ...freshness(state?.last_success_at ?? null, topic.freshness_slo_minutes),
+        freshness: freshness(state?.last_success_at ?? null, topic.freshness_slo_minutes),
         count: items.length,
         items,
         // Assembled, never written. See the note above.
         text: renderBrief(topic.label, items),
         cursor: await signCursor(beatId, String(nextSeq), "changes"),
         history_cursor: await signCursor(beatId, String(rows.at(-1)?.id ?? sequence ?? "0"), "history"),
+    };
+}
+
+/**
+ * The events behind a topic, not the coverage of them.
+ *
+ * A topic with 96 articles in a day is not 96 things happening; it is a handful
+ * of things, reported many times. This reads the window, groups near-identical
+ * headlines, and orders by how many publishers carried each — which is the
+ * closest thing to "what actually happened" available without a model.
+ */
+export async function stories(beatId: string, limit = 200) {
+    const topic = topicById(beatId);
+    const sql = db();
+    const since = new Date(Date.now() - 24 * 3600_000).toISOString();
+    let rows: NewsArticle[];
+    let state: { last_success_at: string | null } | undefined;
+    try {
+        const results = await Promise.all([
+            sql`select id::text, beat_id, title, excerpt, url, source, published_at, first_indexed_at
+                from news_articles
+                where beat_id = ${beatId} and published_at >= ${since}
+                order by published_at desc
+                limit ${limit}`,
+            sql`select last_success_at from news_ingestion_status where beat_id = ${beatId} limit 1`,
+        ]);
+        rows = ((results[0] ?? []) as unknown as NewsArticle[]);
+        state = (results[1] as unknown as Array<{ last_success_at: string | null }>)[0];
+    }
+    catch (error) {
+        console.error("stories failed:", error);
+        throw new NewsError("service_unavailable", "Coverage could not be loaded. Please try again shortly.", 503);
+    }
+
+    const iso = (value: unknown): string => value instanceof Date ? value.toISOString() : String(value ?? "");
+    const articles = (rows ?? []).map((row: NewsArticle) => ({
+        id: String(row.id),
+        title: row.title,
+        url: row.url,
+        source: row.source,
+        published_at: iso(row.published_at),
+    }));
+    const found = clusterStories(articles);
+
+    return {
+        beat_id: beatId,
+        ticker: topic.ticker,
+        label: topic.label,
+        asset: topic.asset ?? "equity",
+        generated_at: new Date().toISOString(),
+        freshness: freshness(state?.last_success_at ?? null, topic.freshness_slo_minutes),
+        window_hours: 24,
+        articles_read: articles.length,
+        story_count: found.length,
+        stories: found.map((story) => ({
+            lead: story.lead,
+            source_count: story.source_count,
+            sources: story.sources.slice(0, 12),
+            first_seen: story.first_seen,
+            last_seen: story.last_seen,
+            url: story.articles[0]?.url ?? "",
+            articles: story.articles.length,
+        })),
     };
 }

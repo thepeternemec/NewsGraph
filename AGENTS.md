@@ -50,13 +50,14 @@ Base: `https://newsgraph.vercel.app/api`
 | `GET /v2/news?beat_id=` | Articles for a topic, with a `cursor` and `history_cursor` |
 | `GET /v2/changes?beat_id=&cursor=` | Only what is new since that cursor |
 | `GET /v2/brief?beat_id=` | The top three headlines verbatim, each with source and UTC time |
+| `GET /v2/stories?beat_id=` | The events behind a topic, not the coverage — near-identical headlines grouped |
 | `GET /v2/tools` | The same tools in OpenAI function-call shape |
 | `POST /mcp` | MCP, Streamable HTTP |
 | `GET /health` | Liveness |
 
-The same four calls are published as tools, for frameworks that would rather be handed a schema
-than a URL: `newsgraph_topics`, `newsgraph_news`, `newsgraph_changes`, `newsgraph_brief`. They
-appear in `GET /v2/tools` and over MCP.
+The same calls are published as tools, for frameworks that would rather be handed a schema than a
+URL: `newsgraph_topics`, `newsgraph_news`, `newsgraph_changes`, `newsgraph_brief`,
+`newsgraph_stories`. They appear in `GET /v2/tools` and over MCP.
 
 **No credential is required.** A key is optional and only raises the rate limit — anonymous
 callers get 120 requests a minute, a key gets 1200. There is no billing.

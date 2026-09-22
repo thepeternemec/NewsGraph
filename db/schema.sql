@@ -124,3 +124,66 @@ create table if not exists public.api_usage (
 
 -- For the sweep that drops expired windows.
 create index if not exists api_usage_window_idx on public.api_usage (window_start);
+
+-- ── Accounts, balance and a billable ledger ─────────────────────────────
+-- The pivot: the API stops being anonymous and starts being metered. A trial
+-- balance is granted on signup, calls draw it down, and Stripe tops it up.
+--
+-- Money is stored in **micro-dollars as integers**, never floats. $0.0005 is 500
+-- micro. A float would accumulate error across millions of sub-cent calls, and
+-- the error would be in our favour, which is the worst kind.
+
+create table if not exists public.accounts (
+  account_id      uuid primary key default gen_random_uuid(),
+  -- Identity comes from WorkOS AuthKit. Nullable so an account can exist before
+  -- the first sign-in completes.
+  workos_user_id  text unique,
+  email           text,
+  display_name    text,
+  created_at      timestamptz not null default now()
+);
+
+create table if not exists public.account_balance (
+  account_id      uuid primary key references public.accounts(account_id) on delete cascade,
+  -- Trial grant. Also the only thing standing between a new account and a bill,
+  -- so it is a column here rather than a constant in code.
+  credits_micro   bigint not null default 5000000 check (credits_micro >= 0),
+  topped_up_micro bigint not null default 0,
+  updated_at      timestamptz not null default now()
+);
+
+-- One row per billable call. This is the source of truth for what a customer
+-- owes and what they did; `api_usage` cannot serve that because it aggregates
+-- into per-minute buckets and forgets the individual calls.
+create table if not exists public.usage_ledger (
+  id              bigserial primary key,
+  account_id      uuid not null references public.accounts(account_id) on delete cascade,
+  key_hash        text,
+  route           text not null,
+  beat_id         text,
+  cost_micro      integer not null check (cost_micro >= 0),
+  -- Balance after this call, so a dispute is answerable without replaying the
+  -- whole ledger.
+  credits_after   bigint not null,
+  created_at      timestamptz not null default now()
+);
+
+create index if not exists usage_ledger_account_idx
+  on public.usage_ledger (account_id, created_at desc);
+
+-- Stripe top-ups, keyed by the Checkout session so a replayed webhook cannot
+-- credit an account twice.
+create table if not exists public.topups (
+  stripe_session_id text primary key,
+  account_id        uuid not null references public.accounts(account_id) on delete cascade,
+  amount_micro      bigint not null check (amount_micro > 0),
+  currency          text not null default 'usd',
+  created_at        timestamptz not null default now()
+);
+
+-- An API key now belongs to an account. Nullable so existing keys keep working
+-- until they are migrated.
+alter table public.api_keys
+  add column if not exists account_id uuid references public.accounts(account_id) on delete cascade;
+
+create index if not exists api_keys_account_idx on public.api_keys (account_id);

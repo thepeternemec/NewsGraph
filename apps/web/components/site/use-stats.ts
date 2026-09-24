@@ -52,6 +52,7 @@ export function useNewsGraphStats(intervalMs = 20000) {
         const data = (await res.json()) as { topics?: Topic[]; total?: number };
         const list = data.topics ?? [];
         setTopics(list);
+          setTotal(data.total ?? list.length);
 
         const fundable = list.find((t) => t.status !== "unavailable");
         if (fundable) {

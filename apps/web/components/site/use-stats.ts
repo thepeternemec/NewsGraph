@@ -29,13 +29,16 @@ interface NewsItem {
 
 export interface Stats {
   /** Topics in the catalog. */
-  beats: number;
+    beats: number;
   /** Topics that currently have articles. */
   live: number;
 }
 
 export function useNewsGraphStats(intervalMs = 20000) {
   const [topics, setTopics] = useState<Topic[]>([]);
+  // The catalog is paginated, so `topics.length` is the size of a page capped at
+  // 1000 and the headline number stopped there. The API reports the real total.
+  const [total, setTotal] = useState(0);
   const [items, setItems] = useState<NewsItem[]>([]);
   const [stamp, setStamp] = useState("");
 
@@ -46,7 +49,7 @@ export function useNewsGraphStats(intervalMs = 20000) {
       try {
         const res = await fetch(`${API_BASE}/v2/topics?limit=1000`, { cache: "no-store" });
         if (cancelled || !res.ok) return;
-        const data = (await res.json()) as { topics?: Topic[] };
+        const data = (await res.json()) as { topics?: Topic[]; total?: number };
         const list = data.topics ?? [];
         setTopics(list);
 
@@ -76,7 +79,7 @@ export function useNewsGraphStats(intervalMs = 20000) {
 
   const labelOf = new Map(topics.map((t) => [t.beat_id, t.label]));
   const stats: Stats = {
-    beats: topics.length,
+    beats: total || topics.length,
     live: topics.filter((t) => t.status !== "unavailable").length,
   };
 

@@ -4,6 +4,7 @@ import { ArrowRight, Bell, Coins, FileCheck, Filter, Plug, Zap } from "lucide-re
 import Marquee from "@/components/ui/marquee/marquee";
 import SiteNav from "@/components/site/site-nav";
 import SiteFooter from "@/components/site/site-footer";
+import CopyButton from "@/components/site/copy-button";
 import { useNewsGraphStats } from "@/components/site/use-stats";
 import { FAQ, PRICES } from "@/components/site/content";
 
@@ -157,32 +158,42 @@ export default function Home() {
         <section className="hero" id="top">
           <div className="wrap">
             <span className="eyebrow">
-              <span className="eyebrow-tag">Early access</span>
-              <span className="eyebrow-stat">{stats?.beats ?? 20} topics live</span>
+              <span className="eyebrow-tag">MIT · open source</span>
+              <span className="eyebrow-stat">{stats?.beats ?? "…"} topics</span>
               <span className="eyebrow-stat">
-                <span className="eyebrow-sep">·</span> 150,000 publishers
+                <span className="eyebrow-sep">·</span> 23,303 publishers
               </span>
               <span className="eyebrow-stat eyebrow-stat-optional">
-                <span className="eyebrow-sep">·</span> usage-based
+                <span className="eyebrow-sep">·</span> no key required
               </span>
             </span>
 
-            <h1>The news layer for AI agents.</h1>
+            <h1>Ask if a topic moved.</h1>
             <p className="lede">
-              Agents act on what they already know, which is usually out of date. NewsGraph watches
-              150,000 publishers and tells yours the moment something on its topics changes — a
-              short, cited brief instead of a feed to read.
+              An API for agents that need to know what changed. Send a topic and a cursor, and get
+              back either <strong>&ldquo;nothing moved&rdquo;</strong> — a real answer, and the cheap
+              one — or the few cited stories that appeared since. No key, no signup, no SDK.
             </p>
 
-            <div className="hero-cta">
-              <a className="btn-primary" href="/dashboard">
-                Open the live terminal <ArrowRight size={14} />
-              </a>
-              <a className="btn-ghost" href="/docs">Read the docs</a>
+            <div className="code hero-curl">
+              <div className="code-bar">
+                one request, right now
+                <CopyButton text={`curl -s "https://newsgraph.vercel.app/api/v2/stories?beat_id=b_7883c6d63df4"`} />
+              </div>
+              <pre>{`curl -s "https://newsgraph.vercel.app/api/v2/stories?beat_id=b_7883c6d63df4"`}</pre>
             </div>
-            <p className="hero-tiny">
-              usage-based pricing · no seat licence · free while we are in early access
-            </p>
+
+            <div className="hero-cta">
+              <a className="btn-primary" href="/docs/quickstart">
+                Quickstart <ArrowRight size={14} />
+              </a>
+              <a className="btn-ghost" href="/dashboard">
+                Live terminal
+              </a>
+              <a className="btn-ghost" href="https://github.com/thepeternemec/NewsGraph">
+                Source
+              </a>
+            </div>
 
             <div className="mock" style={{ marginTop: 46 }}>
               <div className="mock-bar">
@@ -255,7 +266,7 @@ export default function Home() {
           <div className="wrap">
             <div className="metrics-grid">
               <div>
-                <div className="metric-num">150,000</div>
+                <div className="metric-num">23,303</div>
                 <div className="metric-label">Publishers watched around the clock</div>
               </div>
               <div>

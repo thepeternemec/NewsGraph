@@ -14,7 +14,7 @@ import GridField from "@/components/site/grid-field";
 export const metadata: Metadata = {
   title: "NewsGraph — The news layer for AI agents",
   description:
-    "NewsGraph watches 150,000 publishers and answers one question on a schedule: has this moved? A short, cited brief when it has, and usage-based pricing of a fraction of a cent per answer.",
+    "NewsGraph watches 23,303 publishers and answers one question on a schedule: has this moved? A short, cited brief when it has, and usage-based pricing of a fraction of a cent per answer.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
